@@ -1,1 +1,277 @@
-/* App styles will be added as needed */
+/* App container */
+#app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ===== CameraPreview ===== */
+.camera-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+/* ===== RecordingControls (FAB) ===== */
+.recording-fab {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.1s ease;
+  z-index: 101;
+}
+
+.recording-fab:active {
+  transform: scale(0.95);
+}
+
+/* Not recording: white circle with red inner circle */
+.recording-fab:not(.recording) {
+  background: #fff;
+}
+
+.recording-fab:not(.recording) .record-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+/* Recording: red circle with white square */
+.recording-fab.recording {
+  background: #ef4444;
+}
+
+.recording-fab.recording .stop-icon {
+  width: 24px;
+  height: 24px;
+  background: #fff;
+  border-radius: 4px;
+}
+
+/* ===== StatusStrip ===== */
+.status-strip {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 100;
+  cursor: pointer;
+}
+
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rec-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.rec-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #ef4444;
+}
+
+.timer {
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.battery-icon {
+  font-size: 18px;
+}
+
+.stats-hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ===== StoragePanel ===== */
+.storage-panel {
+  position: fixed;
+  bottom: 48px;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 16px 20px;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  z-index: 99;
+}
+
+.storage-panel.show {
+  transform: translateY(0);
+}
+
+.storage-panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.stat-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.stat-value {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 13px;
+}
+
+/* ===== ErrorScreen ===== */
+.error-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 200;
+}
+
+.error-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.error-icon {
+  font-size: 64px;
+  margin-bottom: 24px;
+}
+
+.error-screen h1 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.error-screen p {
+  font-size: 16px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 12px;
+}
+
+.error-help {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.error-action {
+  margin-top: 24px;
+  padding: 12px 24px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.error-action:hover {
+  background: #2563eb;
+}
+
+.error-action:active {
+  transform: scale(0.98);
+}
+
+/* ===== Toast ===== */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-left: 4px solid rgba(255, 255, 255, 0.3);
+  animation: slideIn 0.3s ease;
+  max-width: 90vw;
+}
+
+.toast-info {
+  border-left-color: #3b82f6;
+}
+
+.toast-warning {
+  border-left-color: #f59e0b;
+}
+
+.toast-error {
+  border-left-color: #ef4444;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

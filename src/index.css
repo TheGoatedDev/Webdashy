@@ -16,3 +16,28 @@ body,
   color: #fff;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
+
+/* Disable tap highlight on touch devices */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Touch manipulation for buttons */
+button {
+  touch-action: manipulation;
+}
+
+/* Pulsing red dot animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Monospace font for timer */
+.timer {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
