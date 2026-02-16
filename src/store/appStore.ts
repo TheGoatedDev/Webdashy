@@ -34,6 +34,9 @@ interface AppState {
   batteryLevel: number | null;
   showBatteryWarning: boolean;
 
+  // Detection state
+  detectionEnabled: boolean;
+
   // Toast messages
   toasts: Toast[];
 
@@ -47,6 +50,7 @@ interface AppState {
   setStorageWarningLevel: (level: StorageWarningLevel) => void;
   toggleStoragePanel: () => void;
   setBatteryState: (pluggedIn: boolean, level: number | null) => void;
+  toggleDetection: () => void;
   addToast: (message: string, type: 'info' | 'warning' | 'error') => void;
   removeToast: (id: string) => void;
 }
@@ -64,6 +68,7 @@ export const useAppStore = create<AppState>((set) => ({
   isPluggedIn: true,
   batteryLevel: null,
   showBatteryWarning: false,
+  detectionEnabled: true,
   toasts: [],
 
   // Actions
@@ -84,6 +89,8 @@ export const useAppStore = create<AppState>((set) => ({
   toggleStoragePanel: () => set((state) => ({ showStoragePanel: !state.showStoragePanel })),
 
   setBatteryState: (pluggedIn, level) => set({ isPluggedIn: pluggedIn, batteryLevel: level }),
+
+  toggleDetection: () => set((state) => ({ detectionEnabled: !state.detectionEnabled })),
 
   addToast: (message, type) => {
     const id = crypto.randomUUID();
