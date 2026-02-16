@@ -25,9 +25,11 @@ export function ErrorScreen({ type, message, onAction }: ErrorScreenProps) {
           <div className="error-icon">📷</div>
           <h1>Camera Access Required</h1>
           <p>{message || 'WebDashy needs camera access to record video.'}</p>
-          <p className="error-help">Please enable camera permissions in your browser settings and reload the page.</p>
+          <p className="error-help">
+            Please enable camera permissions in your browser settings and reload the page.
+          </p>
           {onAction && (
-            <button className="error-action" onClick={onAction}>
+            <button type="button" className="error-action" onClick={onAction}>
               Open Settings
             </button>
           )}
@@ -43,9 +45,11 @@ export function ErrorScreen({ type, message, onAction }: ErrorScreenProps) {
           <div className="error-icon">💾</div>
           <h1>Storage Full</h1>
           <p>{message || 'Your device storage is full. Recording has been stopped.'}</p>
-          <p className="error-help">Free up space by deleting old saved clips or other files on your device.</p>
+          <p className="error-help">
+            Free up space by deleting old saved clips or other files on your device.
+          </p>
           {onAction && (
-            <button className="error-action" onClick={onAction}>
+            <button type="button" className="error-action" onClick={onAction}>
               Continue Recording
             </button>
           )}
@@ -60,7 +64,9 @@ export function ErrorScreen({ type, message, onAction }: ErrorScreenProps) {
         <div className="error-content">
           <div className="error-icon">⚠️</div>
           <h1>Video Recording Not Supported</h1>
-          <p>{message || 'Your browser does not support the video codecs required for recording.'}</p>
+          <p>
+            {message || 'Your browser does not support the video codecs required for recording.'}
+          </p>
           <p className="error-help">Please try using Chrome, Edge, or another modern browser.</p>
         </div>
       </div>

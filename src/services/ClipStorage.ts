@@ -1,5 +1,5 @@
-import { openDB, type IDBPDatabase } from 'idb';
-import type { DashcamDB, BufferChunk, SavedClip, SessionState } from '../types/storage';
+import { type IDBPDatabase, openDB } from 'idb';
+import type { BufferChunk, DashcamDB, SavedClip, SessionState } from '../types/storage';
 
 export class ClipStorage {
   private db: IDBPDatabase<DashcamDB> | null = null;
@@ -35,8 +35,16 @@ export class ClipStorage {
     await this.initPromise;
   }
 
+  private async getDB(): Promise<IDBPDatabase<DashcamDB>> {
+    await this.ensureInit();
+    if (!this.db) {
+      throw new Error('[ClipStorage] Database not initialized after ensureInit');
+    }
+    return this.db;
+  }
+
   async requestPersistentStorage(): Promise<boolean> {
-    if (navigator.storage && navigator.storage.persist) {
+    if (navigator.storage?.persist) {
       const isPersisted = await navigator.storage.persist();
       console.log(`[ClipStorage] Persistent storage: ${isPersisted}`);
       return isPersisted;
@@ -46,7 +54,7 @@ export class ClipStorage {
   }
 
   async getStorageEstimate(): Promise<{ usage: number; quota: number }> {
-    if (navigator.storage && navigator.storage.estimate) {
+    if (navigator.storage?.estimate) {
       const estimate = await navigator.storage.estimate();
       return {
         usage: estimate.usage || 0,
@@ -56,11 +64,7 @@ export class ClipStorage {
     return { usage: 0, quota: 0 };
   }
 
-  private async retryWrite<T>(
-    fn: () => Promise<T>,
-    maxRetries = 3,
-    baseDelay = 200
-  ): Promise<T> {
+  private async retryWrite<T>(fn: () => Promise<T>, maxRetries = 3, baseDelay = 200): Promise<T> {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -68,13 +72,10 @@ export class ClipStorage {
         return await fn();
       } catch (error) {
         lastError = error as Error;
-        console.warn(
-          `[ClipStorage] Write attempt ${attempt + 1}/${maxRetries} failed:`,
-          error
-        );
+        console.warn(`[ClipStorage] Write attempt ${attempt + 1}/${maxRetries} failed:`, error);
 
         if (attempt < maxRetries - 1) {
-          const delay = baseDelay * Math.pow(2, attempt);
+          const delay = baseDelay * 2 ** attempt;
           console.log(`[ClipStorage] Retrying in ${delay}ms...`);
           await new Promise((resolve) => setTimeout(resolve, delay));
         }
@@ -82,7 +83,7 @@ export class ClipStorage {
     }
 
     throw new Error(
-      `[ClipStorage] Write failed after ${maxRetries} attempts: ${lastError?.message}`
+      `[ClipStorage] Write failed after ${maxRetries} attempts: ${lastError?.message}`,
     );
   }
 
@@ -90,65 +91,67 @@ export class ClipStorage {
   async addBufferChunk(chunk: BufferChunk): Promise<void> {
     await this.ensureInit();
     await this.retryWrite(async () => {
-      await this.db!.add('buffer', chunk);
+      const db = await this.getDB();
+      await db.add('buffer', chunk);
     });
   }
 
   async deleteBufferChunk(id: string): Promise<void> {
-    await this.ensureInit();
-    await this.db!.delete('buffer', id);
+    const db = await this.getDB();
+    await db.delete('buffer', id);
   }
 
   async getBufferChunksByTimestamp(before: number): Promise<BufferChunk[]> {
-    await this.ensureInit();
-    const tx = this.db!.transaction('buffer', 'readonly');
+    const db = await this.getDB();
+    const tx = db.transaction('buffer', 'readonly');
     const index = tx.store.index('by-timestamp');
     const range = IDBKeyRange.upperBound(before, true);
     return await index.getAll(range);
   }
 
   async getAllBufferChunks(): Promise<BufferChunk[]> {
-    await this.ensureInit();
-    return await this.db!.getAll('buffer');
+    const db = await this.getDB();
+    return await db.getAll('buffer');
   }
 
   async getBufferChunkCount(): Promise<number> {
-    await this.ensureInit();
-    return await this.db!.count('buffer');
+    const db = await this.getDB();
+    return await db.count('buffer');
   }
 
   // Saved clip operations
   async addSavedClip(clip: SavedClip): Promise<void> {
     await this.ensureInit();
     await this.retryWrite(async () => {
-      await this.db!.add('saved', clip);
+      const db = await this.getDB();
+      await db.add('saved', clip);
     });
   }
 
   async deleteSavedClip(id: string): Promise<void> {
-    await this.ensureInit();
-    await this.db!.delete('saved', id);
+    const db = await this.getDB();
+    await db.delete('saved', id);
   }
 
   async getAllSavedClips(): Promise<SavedClip[]> {
-    await this.ensureInit();
-    return await this.db!.getAll('saved');
+    const db = await this.getDB();
+    return await db.getAll('saved');
   }
 
   // Session state operations
   async saveSessionState(state: SessionState): Promise<void> {
-    await this.ensureInit();
-    await this.db!.put('session', state);
+    const db = await this.getDB();
+    await db.put('session', state);
   }
 
   async getSessionState(): Promise<SessionState | undefined> {
-    await this.ensureInit();
-    return await this.db!.get('session', 'current');
+    const db = await this.getDB();
+    return await db.get('session', 'current');
   }
 
   async clearSessionState(): Promise<void> {
-    await this.ensureInit();
-    await this.db!.delete('session', 'current');
+    const db = await this.getDB();
+    await db.delete('session', 'current');
   }
 }
 

@@ -14,7 +14,7 @@ body,
   overflow: hidden;
   background: #000;
   color: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* Disable tap highlight on touch devices */
@@ -29,7 +29,8 @@ button {
 
 /* Pulsing red dot animation */
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -39,5 +40,5 @@ button {
 
 /* Monospace font for timer */
 .timer {
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-family: "SF Mono", "Monaco", "Consolas", monospace;
 }

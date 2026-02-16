@@ -1,25 +1,25 @@
 import type { DBSchema } from 'idb';
 
 export interface BufferChunk {
-  id: string;                // crypto.randomUUID()
-  timestamp: number;         // Date.now() when chunk was recorded
-  size: number;              // blob.size in bytes
-  blob: Blob;                // Raw video blob
-  sequenceNumber: number;    // Incrementing counter for ordering
+  id: string; // crypto.randomUUID()
+  timestamp: number; // Date.now() when chunk was recorded
+  size: number; // blob.size in bytes
+  blob: Blob; // Raw video blob
+  sequenceNumber: number; // Incrementing counter for ordering
 }
 
 export interface SavedClip {
   id: string;
   timestamp: number;
-  duration: number;          // Duration in milliseconds
-  chunkIds: string[];        // References to buffer chunks (if still available)
+  duration: number; // Duration in milliseconds
+  chunkIds: string[]; // References to buffer chunks (if still available)
   triggerType: 'manual' | 'accelerometer';
-  size: number;              // Total size in bytes
-  blob: Blob;                // Concatenated video blob
+  size: number; // Total size in bytes
+  blob: Blob; // Concatenated video blob
 }
 
 export interface SessionState {
-  id: string;                // Always 'current'
+  id: string; // Always 'current'
   recording: boolean;
   startTime: number;
   lastChunkTime: number;
@@ -32,7 +32,7 @@ export type VideoQuality = 'low' | 'medium' | 'high';
 export interface VideoQualityConfig {
   width: number;
   height: number;
-  bitrate: number;           // bits per second
+  bitrate: number; // bits per second
   label: string;
 }
 

@@ -1,5 +1,5 @@
-import { ClipStorage } from './ClipStorage';
 import type { BufferChunk, StorageStats } from '../types/storage';
+import type { ClipStorage } from './ClipStorage';
 
 export class BufferManager extends EventTarget {
   private storage: ClipStorage;
@@ -22,20 +22,20 @@ export class BufferManager extends EventTarget {
       this.dispatchEvent(
         new CustomEvent('storage-full', {
           detail: { usage, quota, quotaPercent },
-        })
+        }),
       );
       throw new Error(`Storage quota exceeded: ${quotaPercent.toFixed(1)}% used`);
     } else if (quotaPercent > 90) {
       this.dispatchEvent(
         new CustomEvent('storage-critical', {
           detail: { usage, quota, quotaPercent },
-        })
+        }),
       );
     } else if (quotaPercent > 80) {
       this.dispatchEvent(
         new CustomEvent('storage-warning', {
           detail: { usage, quota, quotaPercent },
-        })
+        }),
       );
     }
 

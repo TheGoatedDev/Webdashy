@@ -134,7 +134,9 @@ export class CodecDetector {
 
       // CRITICAL: Release camera
       if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+        for (const track of stream.getTracks()) {
+          track.stop();
+        }
       }
     }
   }

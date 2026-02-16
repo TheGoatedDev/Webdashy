@@ -15,15 +15,12 @@ interface RecordingControlsProps {
 export function RecordingControls({ isRecording, onToggle }: RecordingControlsProps) {
   return (
     <button
+      type="button"
       className={`recording-fab ${isRecording ? 'recording' : ''}`}
       onClick={onToggle}
       aria-label={isRecording ? 'Stop recording' : 'Start recording'}
     >
-      {isRecording ? (
-        <div className="stop-icon" />
-      ) : (
-        <div className="record-icon" />
-      )}
+      {isRecording ? <div className="stop-icon" /> : <div className="record-icon" />}
     </button>
   );
 }

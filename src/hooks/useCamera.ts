@@ -5,7 +5,7 @@
  * friendly error messages, and cleanup on unmount.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppStore } from '../store/appStore';
 
 interface UseCameraReturn {
@@ -44,7 +44,8 @@ export function useCamera(): UseCameraReturn {
       if (err instanceof Error) {
         // NotAllowedError = user denied permission
         if (err.name === 'NotAllowedError') {
-          errorMessage = 'Camera access denied. Please enable camera permissions in your browser settings.';
+          errorMessage =
+            'Camera access denied. Please enable camera permissions in your browser settings.';
         }
         // NotFoundError = no camera device found
         else if (err.name === 'NotFoundError') {
@@ -60,7 +61,9 @@ export function useCamera(): UseCameraReturn {
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
+      for (const track of streamRef.current.getTracks()) {
+        track.stop();
+      }
       streamRef.current = null;
       setStream(null);
       setCameraReady(false);
@@ -71,7 +74,9 @@ export function useCamera(): UseCameraReturn {
   useEffect(() => {
     return () => {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
+        for (const track of streamRef.current.getTracks()) {
+          track.stop();
+        }
       }
     };
   }, []);

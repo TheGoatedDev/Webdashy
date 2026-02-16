@@ -8,11 +8,11 @@
  * Blobs go directly to BufferManager.addChunk() - no blob URLs created here.
  */
 
-import { detectCodec } from './CodecDetector';
+import type { SessionState, VideoQuality } from '../types/storage';
+import { VIDEO_QUALITY_PRESETS } from '../types/storage';
 import type { BufferManager } from './BufferManager';
 import type { ClipStorage } from './ClipStorage';
-import type { VideoQuality, SessionState } from '../types/storage';
-import { VIDEO_QUALITY_PRESETS } from '../types/storage';
+import { detectCodec } from './CodecDetector';
 
 type RecordingState = 'inactive' | 'recording' | 'paused';
 
@@ -67,7 +67,7 @@ export class RecordingEngine extends EventTarget {
     // Get quality configuration
     const qualityConfig = VIDEO_QUALITY_PRESETS[this.quality];
     console.log(
-      `[RecordingEngine] Quality: ${qualityConfig.label} @ ${qualityConfig.bitrate / 1_000_000}Mbps`
+      `[RecordingEngine] Quality: ${qualityConfig.label} @ ${qualityConfig.bitrate / 1_000_000}Mbps`,
     );
 
     // Create MediaRecorder
@@ -100,7 +100,7 @@ export class RecordingEngine extends EventTarget {
                 size: event.data.size,
                 timestamp: Date.now(),
               },
-            })
+            }),
           );
         } catch (error) {
           console.error('[RecordingEngine] Failed to save chunk:', error);
@@ -110,7 +110,7 @@ export class RecordingEngine extends EventTarget {
                 message: 'Failed to save recording chunk',
                 recoverable: true,
               },
-            })
+            }),
           );
         }
       }
@@ -125,7 +125,7 @@ export class RecordingEngine extends EventTarget {
             message: `MediaRecorder error: ${event}`,
             recoverable: false,
           },
-        })
+        }),
       );
     };
 
@@ -148,9 +148,12 @@ export class RecordingEngine extends EventTarget {
     }
 
     // Start circuit breaker - restart every hour
-    this.circuitBreakerTimeout = window.setTimeout(() => {
-      this.circuitBreakerRestart();
-    }, 60 * 60 * 1000);
+    this.circuitBreakerTimeout = window.setTimeout(
+      () => {
+        this.circuitBreakerRestart();
+      },
+      60 * 60 * 1000,
+    );
 
     // Start timer - emit elapsed time every second
     this.timerInterval = window.setInterval(() => {
@@ -158,7 +161,7 @@ export class RecordingEngine extends EventTarget {
       this.dispatchEvent(
         new CustomEvent('timer', {
           detail: { elapsedMs },
-        })
+        }),
       );
     }, 1000);
 
@@ -170,7 +173,7 @@ export class RecordingEngine extends EventTarget {
     this.dispatchEvent(
       new CustomEvent('statechange', {
         detail: { state: this.state },
-      })
+      }),
     );
 
     console.log('[RecordingEngine] Recording started');
@@ -212,7 +215,10 @@ export class RecordingEngine extends EventTarget {
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
 
     // Stop recorder
-    if (this.recorder && (this.recorder.state === 'recording' || this.recorder.state === 'paused')) {
+    if (
+      this.recorder &&
+      (this.recorder.state === 'recording' || this.recorder.state === 'paused')
+    ) {
       await new Promise<void>((resolve) => {
         if (this.recorder) {
           this.recorder.onstop = () => resolve();
@@ -232,7 +238,7 @@ export class RecordingEngine extends EventTarget {
     this.dispatchEvent(
       new CustomEvent('statechange', {
         detail: { state: this.state },
-      })
+      }),
     );
 
     console.log('[RecordingEngine] Recording stopped');
@@ -307,12 +313,12 @@ export class RecordingEngine extends EventTarget {
           detail: {
             message: error instanceof Error ? error.message : 'Unknown error',
           },
-        })
+        }),
       );
       this.dispatchEvent(
         new CustomEvent('statechange', {
           detail: { state: this.state },
-        })
+        }),
       );
     }
   }
@@ -334,7 +340,10 @@ export class RecordingEngine extends EventTarget {
     }
 
     // Stop recorder but keep stream alive
-    if (this.recorder && (this.recorder.state === 'recording' || this.recorder.state === 'paused')) {
+    if (
+      this.recorder &&
+      (this.recorder.state === 'recording' || this.recorder.state === 'paused')
+    ) {
       await new Promise<void>((resolve) => {
         if (this.recorder) {
           this.recorder.onstop = () => resolve();
@@ -379,7 +388,7 @@ export class RecordingEngine extends EventTarget {
     this.dispatchEvent(
       new CustomEvent('visibility-change', {
         detail: { hidden },
-      })
+      }),
     );
 
     if (hidden) {
@@ -397,7 +406,7 @@ export class RecordingEngine extends EventTarget {
                 message: 'Recording stopped - app in background too long',
                 recoverable: true,
               },
-            })
+            }),
           );
         }
       }, 10000);

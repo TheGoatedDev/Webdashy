@@ -48,7 +48,9 @@ export function StoragePanel({ show, stats }: StoragePanelProps) {
       <div className="storage-panel-content">
         <div className="stat-row">
           <span className="stat-label">Buffer:</span>
-          <span className="stat-value">{formatBytes(stats.bufferSizeBytes)} ({formatDuration(stats.bufferDurationMs)})</span>
+          <span className="stat-value">
+            {formatBytes(stats.bufferSizeBytes)} ({formatDuration(stats.bufferDurationMs)})
+          </span>
         </div>
         <div className="stat-row">
           <span className="stat-label">Saved:</span>
@@ -56,7 +58,10 @@ export function StoragePanel({ show, stats }: StoragePanelProps) {
         </div>
         <div className="stat-row">
           <span className="stat-label">Total:</span>
-          <span className="stat-value">{formatBytes(stats.quotaUsageBytes)} / {formatBytes(stats.quotaTotalBytes)} ({stats.quotaPercent.toFixed(1)}%)</span>
+          <span className="stat-value">
+            {formatBytes(stats.quotaUsageBytes)} / {formatBytes(stats.quotaTotalBytes)} (
+            {stats.quotaPercent.toFixed(1)}%)
+          </span>
         </div>
       </div>
     </div>

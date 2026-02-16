@@ -20,13 +20,5 @@ export function CameraPreview({ stream }: CameraPreviewProps) {
     }
   }, [stream]);
 
-  return (
-    <video
-      ref={videoRef}
-      autoPlay
-      playsInline
-      muted
-      className="camera-preview"
-    />
-  );
+  return <video ref={videoRef} autoPlay playsInline muted className="camera-preview" />;
 }

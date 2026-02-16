@@ -24,13 +24,18 @@ function formatTime(ms: number): string {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-export function StatusStrip({ isRecording, elapsedMs, isPluggedIn, onToggleStats }: StatusStripProps) {
+export function StatusStrip({
+  isRecording,
+  elapsedMs,
+  isPluggedIn,
+  onToggleStats,
+}: StatusStripProps) {
   if (!isRecording) {
     return null;
   }
 
   return (
-    <div className="status-strip" onClick={onToggleStats}>
+    <button type="button" className="status-strip" onClick={onToggleStats}>
       <div className="status-left">
         <div className="rec-dot" />
         <span className="rec-label">REC</span>
@@ -40,6 +45,6 @@ export function StatusStrip({ isRecording, elapsedMs, isPluggedIn, onToggleStats
         {!isPluggedIn && <span className="battery-icon">🔋</span>}
         <span className="stats-hint">Tap for stats</span>
       </div>
-    </div>
+    </button>
   );
 }

@@ -8,10 +8,10 @@
  * ARCHITECTURE RULE: Video blobs NEVER enter React state.
  */
 
-import { useRef, useEffect, useCallback } from 'react';
-import { RecordingEngine } from '../services/RecordingEngine';
+import { useCallback, useEffect, useRef } from 'react';
 import { BufferManager } from '../services/BufferManager';
 import { getClipStorage } from '../services/ClipStorage';
+import { RecordingEngine } from '../services/RecordingEngine';
 import { useAppStore } from '../store/appStore';
 import type { SessionState } from '../types/storage';
 
@@ -27,19 +27,11 @@ export function useRecorder(): UseRecorderReturn {
   // Create service instances once
   const clipStorageRef = useRef(getClipStorage());
   const bufferManagerRef = useRef(new BufferManager(clipStorageRef.current));
-  const engineRef = useRef(
-    new RecordingEngine(bufferManagerRef.current, clipStorageRef.current)
-  );
+  const engineRef = useRef(new RecordingEngine(bufferManagerRef.current, clipStorageRef.current));
 
   const interruptedSessionRef = useRef<SessionState | null>(null);
 
-  const {
-    elapsedMs,
-    setRecording,
-    setElapsedMs,
-    setRecordingError,
-    addToast,
-  } = useAppStore();
+  const { elapsedMs, setRecording, setElapsedMs, setRecordingError, addToast } = useAppStore();
 
   // Check for interrupted session on mount
   useEffect(() => {
@@ -125,7 +117,11 @@ export function useRecorder(): UseRecorderReturn {
     };
 
     const handleStorageFull = (event: Event) => {
-      const customEvent = event as CustomEvent<{ usage: number; quota: number; quotaPercent: number }>;
+      const customEvent = event as CustomEvent<{
+        usage: number;
+        quota: number;
+        quotaPercent: number;
+      }>;
       const message = `Storage full: ${customEvent.detail.quotaPercent.toFixed(1)}% used`;
       setRecordingError(message);
     };

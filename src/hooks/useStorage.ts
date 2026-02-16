@@ -5,7 +5,7 @@
  * Refreshes on mount.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { BufferManager } from '../services/BufferManager';
 import { getClipStorage } from '../services/ClipStorage';
 import { useAppStore } from '../store/appStore';

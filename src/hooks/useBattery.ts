@@ -5,7 +5,7 @@
  * Falls back to assuming plugged-in if API not supported.
  */
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppStore } from '../store/appStore';
 
 interface UseBatteryReturn {
