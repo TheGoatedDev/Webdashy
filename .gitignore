@@ -24,3 +24,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Dev camera video file (local only)
+public/dev-camera.*
