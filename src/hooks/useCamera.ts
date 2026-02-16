@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppStore } from '../store/appStore';
+import { getMediaStream } from '../services/DevStream';
 
 interface UseCameraReturn {
   stream: MediaStream | null;
@@ -27,7 +28,7 @@ export function useCamera(): UseCameraReturn {
       setError(null);
       setCameraError(null);
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
+      const mediaStream = await getMediaStream({
         video: {
           facingMode: 'environment',
           width: { ideal: 1280 },

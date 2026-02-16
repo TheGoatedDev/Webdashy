@@ -5,6 +5,8 @@
  * test clip and verifying playback. Results cached in localStorage.
  */
 
+import { getMediaStream } from './DevStream';
+
 const CODEC_LADDER = [
   'video/webm; codecs=vp9',
   'video/webm; codecs=vp8',
@@ -66,7 +68,7 @@ export class CodecDetector {
 
     try {
       // Get camera stream with small resolution for speed
-      stream = await navigator.mediaDevices.getUserMedia({
+      stream = await getMediaStream({
         video: { width: 320, height: 240 },
       });
 
