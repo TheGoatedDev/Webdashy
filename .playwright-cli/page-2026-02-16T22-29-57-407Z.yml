@@ -1,0 +1,20 @@
+- generic [ref=e3]:
+  - button "Start recording" [ref=e5]
+  - generic [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]: Storage
+      - generic [ref=e11]: 0.0%
+    - generic [ref=e13]:
+      - generic [ref=e14]:
+        - generic [ref=e15]: Buffer
+        - generic [ref=e16]:
+          - text: 0 B
+          - generic [ref=e17]: (0m)
+      - generic [ref=e18]:
+        - generic [ref=e19]: Saved
+        - generic [ref=e20]: 0 B
+      - generic [ref=e21]:
+        - generic [ref=e22]: Total
+        - generic [ref=e23]:
+          - text: 3.4 KB
+          - generic [ref=e24]: / 4.04 GB

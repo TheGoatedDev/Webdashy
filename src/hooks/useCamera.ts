@@ -6,8 +6,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAppStore } from '../store/appStore';
 import { getMediaStream } from '../services/DevStream';
+import { useAppStore } from '../store/appStore';
 
 interface UseCameraReturn {
   stream: MediaStream | null;

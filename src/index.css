@@ -1,44 +1,71 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@import url("https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-display: 'Chakra Petch', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+
+  --color-rec: #ff3b30;
+  --color-hud: #00d4aa;
+  --color-warn: #ffd60a;
+
+  --animate-rec-pulse: rec-pulse 1.5s ease-in-out infinite;
+  --animate-glow: glow-pulse 2s ease-in-out infinite;
+  --animate-toast-in: toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-html,
-body,
-#root {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #000;
-  color: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-
-/* Disable tap highlight on touch devices */
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Touch manipulation for buttons */
-button {
-  touch-action: manipulation;
-}
-
-/* Pulsing red dot animation */
-@keyframes pulse {
+@keyframes rec-pulse {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.3;
+    opacity: 0.2;
   }
 }
 
-/* Monospace font for timer */
-.timer {
-  font-family: "SF Mono", "Monaco", "Consolas", monospace;
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 16px rgba(255, 59, 48, 0.4),
+      0 0 32px rgba(255, 59, 48, 0.12);
+  }
+  50% {
+    box-shadow:
+      0 0 24px rgba(255, 59, 48, 0.55),
+      0 0 48px rgba(255, 59, 48, 0.2);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    color: #fff;
+    font-family: "Chakra Petch", sans-serif;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button {
+    touch-action: manipulation;
+  }
 }

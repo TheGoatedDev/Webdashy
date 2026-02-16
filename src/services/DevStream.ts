@@ -14,9 +14,7 @@
  * @param constraints - MediaStreamConstraints for getUserMedia
  * @returns MediaStream from dev video (in dev mode) or real camera
  */
-export async function getMediaStream(
-  constraints?: MediaStreamConstraints,
-): Promise<MediaStream> {
+export async function getMediaStream(constraints?: MediaStreamConstraints): Promise<MediaStream> {
   // Production: always use real camera
   if (!import.meta.env.DEV) {
     return navigator.mediaDevices.getUserMedia(constraints);
@@ -35,10 +33,7 @@ export async function getMediaStream(
           console.log(`[DevStream] Using dev video: ${path}`);
           return await loadVideoStream(path);
         }
-      } catch (error) {
-        // File doesn't exist or network error, try next path
-        continue;
-      }
+      } catch (error) {}
     }
 
     // No dev video file found, fall back to real camera

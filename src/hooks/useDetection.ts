@@ -10,8 +10,7 @@ export function useDetection(
   const detectorRef = useRef<ObjectDetector | null>(null);
   const [detections, setDetections] = useState<Detection[]>([]);
   const [modelLoading, setModelLoading] = useState<boolean>(false);
-  const animationFrameRef = useRef<number | null>(null);
-  const lastDetectionTimeRef = useRef<number>(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load model when enabled becomes true
   useEffect(() => {
@@ -49,44 +48,35 @@ export function useDetection(
     const video = videoRef.current;
     let cancelled = false;
 
-    const DETECTION_INTERVAL_MS = 200; // ~5 FPS
+    const DETECTION_INTERVAL_MS = 66; // ~15 FPS
 
-    const runDetection = async () => {
+    const runDetection = () => {
       if (cancelled) return;
 
-      const now = performance.now();
-      const timeSinceLastDetection = now - lastDetectionTimeRef.current;
-
-      // Throttle to target FPS
-      if (timeSinceLastDetection >= DETECTION_INTERVAL_MS) {
-        try {
-          const results = await detector.detect(video);
-          if (!cancelled) {
-            setDetections(results);
-            lastDetectionTimeRef.current = now;
-          }
-        } catch (error) {
-          console.error('[useDetection] Detection error:', error);
+      try {
+        const results = detector.detect(video, performance.now());
+        if (!cancelled) {
+          setDetections(results);
         }
+      } catch (error) {
+        console.error('[useDetection] Detection error:', error);
       }
 
-      // Schedule next frame
       if (!cancelled) {
-        animationFrameRef.current = requestAnimationFrame(runDetection);
+        timerRef.current = setTimeout(runDetection, DETECTION_INTERVAL_MS);
       }
     };
 
-    // Start the loop
-    animationFrameRef.current = requestAnimationFrame(runDetection);
+    timerRef.current = setTimeout(runDetection, DETECTION_INTERVAL_MS);
 
     return () => {
       cancelled = true;
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
       }
     };
-  }, [enabled, videoRef]);
+  }, [enabled, modelLoading, videoRef]);
 
   // Cleanup on unmount or when disabled
   useEffect(() => {

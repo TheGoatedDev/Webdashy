@@ -1,7 +1,4 @@
-// Side-effect import to register WebGL backend before COCO-SSD uses it
-import '@tensorflow/tfjs';
-import type { ObjectDetection } from '@tensorflow-models/coco-ssd';
-import * as cocoSsd from '@tensorflow-models/coco-ssd';
+import { FilesetResolver, ObjectDetector as MPObjectDetector } from '@mediapipe/tasks-vision';
 
 export interface Detection {
   class: string;
@@ -15,8 +12,10 @@ export interface DetectionConfig {
   maxDetections: number;
 }
 
+const WASM_CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm';
+
 export class ObjectDetector {
-  private model: ObjectDetection | null = null;
+  private detector: MPObjectDetector | null = null;
   private config: DetectionConfig = {
     targetClasses: ['car', 'person', 'truck', 'bus', 'bicycle', 'motorcycle'],
     minConfidence: 0.5,
@@ -25,41 +24,59 @@ export class ObjectDetector {
 
   async load(): Promise<void> {
     const startTime = performance.now();
-    this.model = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
+    const vision = await FilesetResolver.forVisionTasks(WASM_CDN);
+    this.detector = await MPObjectDetector.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath:
+          'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/latest/efficientdet_lite0.tflite',
+      },
+      runningMode: 'VIDEO',
+      scoreThreshold: this.config.minConfidence,
+      maxResults: this.config.maxDetections,
+      categoryAllowlist: this.config.targetClasses,
+    });
     const loadTime = Math.round(performance.now() - startTime);
     console.log(`[ObjectDetector] Model loaded in ${loadTime}ms`);
   }
 
-  async detect(video: HTMLVideoElement): Promise<Detection[]> {
-    // Return empty array if model not loaded or video not ready
-    if (!this.model || !video || video.videoWidth === 0) {
+  detect(video: HTMLVideoElement, timestampMs: number): Detection[] {
+    if (!this.detector || !video || video.videoWidth === 0) {
       return [];
     }
 
-    const predictions = await this.model.detect(video, this.config.maxDetections);
+    const result = this.detector.detectForVideo(video, timestampMs);
 
-    // Filter to target classes with sufficient confidence
-    const filtered = predictions.filter(
-      (pred) =>
-        this.config.targetClasses.includes(pred.class) && pred.score >= this.config.minConfidence,
-    );
-
-    // Map to Detection interface
-    return filtered.map((pred) => ({
-      class: pred.class,
-      score: pred.score,
-      bbox: pred.bbox as [number, number, number, number],
-    }));
+    return result.detections
+      .filter((d) => d.boundingBox && d.categories.length > 0)
+      .map((d) => {
+        const box = d.boundingBox as {
+          originX: number;
+          originY: number;
+          width: number;
+          height: number;
+        };
+        const category = d.categories[0];
+        return {
+          class: category.categoryName,
+          score: category.score,
+          bbox: [box.originX, box.originY, box.width, box.height] as [
+            number,
+            number,
+            number,
+            number,
+          ],
+        };
+      });
   }
 
   isLoaded(): boolean {
-    return this.model !== null;
+    return this.detector !== null;
   }
 
   dispose(): void {
-    if (this.model) {
-      this.model.dispose();
-      this.model = null;
+    if (this.detector) {
+      this.detector.close();
+      this.detector = null;
       console.log('[ObjectDetector] Model disposed');
     }
   }

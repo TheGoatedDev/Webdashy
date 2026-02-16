@@ -1,11 +1,8 @@
 /**
- * StatusStrip - Bottom edge overlay with recording status
+ * StatusStrip - Bottom edge HUD overlay with recording status
  *
- * Layout (left to right): pulsing red dot, "REC", HH:MM:SS timer, spacer,
- * battery icon (when unplugged), "Tap for stats".
- *
- * Background: rgba(0,0,0,0.6) + backdrop-filter: blur(4px).
- * Height: 48px, position fixed bottom 0, z-index 100.
+ * Layout: pulsing dot + "REC" label + monospace timer | battery + stats hint.
+ * Translucent dark bar with top border accent and backdrop blur.
  */
 
 interface StatusStripProps {
@@ -35,15 +32,25 @@ export function StatusStrip({
   }
 
   return (
-    <button type="button" className="status-strip" onClick={onToggleStats}>
-      <div className="status-left">
-        <div className="rec-dot" />
-        <span className="rec-label">REC</span>
-        <span className="timer">{formatTime(elapsedMs)}</span>
+    <button
+      type="button"
+      className="fixed bottom-0 left-0 right-0 z-[100] flex h-12 cursor-pointer items-center justify-between border-t border-white/10 bg-black/70 px-5 backdrop-blur-md"
+      onClick={onToggleStats}
+    >
+      <div className="flex items-center gap-3">
+        <div className="h-2 w-2 animate-rec-pulse rounded-full bg-rec" />
+        <span className="font-display text-[11px] font-semibold uppercase tracking-widest text-rec">
+          Rec
+        </span>
+        <span className="font-mono text-sm tracking-wide text-white/90">
+          {formatTime(elapsedMs)}
+        </span>
       </div>
-      <div className="status-right">
-        {!isPluggedIn && <span className="battery-icon">🔋</span>}
-        <span className="stats-hint">Tap for stats</span>
+      <div className="flex items-center gap-3">
+        {!isPluggedIn && <span className="text-sm">🔋</span>}
+        <span className="font-display text-[10px] uppercase tracking-wider text-white/35">
+          Tap for stats
+        </span>
       </div>
     </button>
   );

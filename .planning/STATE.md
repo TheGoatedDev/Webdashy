@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 Phase: 1 of 5 (Core Recording Engine)
 Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-16 - Completed quick task 3: Make video stream continue playing regardless of recording state
+Last activity: 2026-02-16 - Completed quick task 4: Implement basic computer vision model for car and person detection
 
 Progress: [██░░░░░░░░] 67%
 
@@ -69,9 +69,10 @@ None yet.
 | 1 | Migrate ESLint to Biome | 2026-02-16 | b7d14d4 | [1-migrate-eslint-to-biome](./quick/1-migrate-eslint-to-biome/) |
 | 2 | Use a video file instead of camera in dev mode | 2026-02-16 | 2321b45 | [2-use-a-video-file-instead-of-camera-in-de](./quick/2-use-a-video-file-instead-of-camera-in-de/) |
 | 3 | Make video stream continue playing regardless of recording state | 2026-02-16 | 9451b3a | [3-make-video-stream-continue-playing-regar](./quick/3-make-video-stream-continue-playing-regar/) |
+| 4 | Implement basic computer vision model for car and person detection | 2026-02-16 | b343f0a | [4-implement-basic-computer-vision-model-fo](./quick/4-implement-basic-computer-vision-model-fo/) |
 
 ## Session Continuity
 
-Last session: 2026-02-16T22:34:37Z
-Stopped at: Completed quick task 3 (Make video stream continue playing regardless of recording state)
+Last session: 2026-02-16T22:48:34Z
+Stopped at: Completed quick task 4 (Implement basic computer vision model for car and person detection)
 Resume file: None
