@@ -7,8 +7,9 @@
  * All state through hooks + Zustand.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { CameraPreview } from './components/CameraPreview';
+import { DetectionOverlay } from './components/DetectionOverlay';
 import { ErrorScreen } from './components/ErrorScreen';
 import { RecordingControls } from './components/RecordingControls';
 import { StatusStrip } from './components/StatusStrip';
@@ -16,18 +17,29 @@ import { StoragePanel } from './components/StoragePanel';
 import { Toast } from './components/Toast';
 import { useBattery } from './hooks/useBattery';
 import { useCamera } from './hooks/useCamera';
+import { useDetection } from './hooks/useDetection';
 import { useRecorder } from './hooks/useRecorder';
 import { useStorage } from './hooks/useStorage';
 import { useAppStore } from './store/appStore';
 
 function App() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   const { stream, error: cameraError, requestCamera } = useCamera();
   const { start, stop } = useRecorder();
   const { stats } = useStorage();
   const { isPluggedIn } = useBattery();
 
-  const { isRecording, elapsedMs, recordingError, showStoragePanel, toggleStoragePanel } =
-    useAppStore();
+  const {
+    isRecording,
+    elapsedMs,
+    recordingError,
+    showStoragePanel,
+    toggleStoragePanel,
+    detectionEnabled,
+  } = useAppStore();
+
+  const { detections, modelLoading } = useDetection(videoRef, detectionEnabled);
 
   // Request camera on mount
   useEffect(() => {
@@ -56,7 +68,17 @@ function App() {
 
   return (
     <div id="app" className="relative h-full w-full overflow-hidden">
-      <CameraPreview stream={stream} />
+      <CameraPreview ref={videoRef} stream={stream} />
+
+      {/* Detection overlay */}
+      <DetectionOverlay detections={detections} videoRef={videoRef} />
+
+      {/* Model loading indicator */}
+      {modelLoading && (
+        <div className="fixed top-5 left-5 z-[5] font-display text-[10px] uppercase tracking-wider text-hud/50 transition-opacity duration-500">
+          Loading detection model...
+        </div>
+      )}
 
       {/* Cinematic vignette */}
       <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.5)_100%)]" />

@@ -1,7 +1,7 @@
 // Side-effect import to register WebGL backend before COCO-SSD uses it
 import '@tensorflow/tfjs';
-import * as cocoSsd from '@tensorflow-models/coco-ssd';
 import type { ObjectDetection } from '@tensorflow-models/coco-ssd';
+import * as cocoSsd from '@tensorflow-models/coco-ssd';
 
 export interface Detection {
   class: string;
@@ -41,8 +41,7 @@ export class ObjectDetector {
     // Filter to target classes with sufficient confidence
     const filtered = predictions.filter(
       (pred) =>
-        this.config.targetClasses.includes(pred.class) &&
-        pred.score >= this.config.minConfidence
+        this.config.targetClasses.includes(pred.class) && pred.score >= this.config.minConfidence,
     );
 
     // Map to Detection interface

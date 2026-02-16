@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
+import { useEffect, useRef } from 'react';
 import type { Detection } from '../services/ObjectDetector';
 
 interface DetectionOverlayProps {
@@ -72,10 +72,15 @@ export function DetectionOverlay({ detections, videoRef }: DetectionOverlayProps
         canvasX + canvasWidth,
         canvasY + canvasHeight,
         canvasX + canvasWidth - radius,
-        canvasY + canvasHeight
+        canvasY + canvasHeight,
       );
       ctx.lineTo(canvasX + radius, canvasY + canvasHeight);
-      ctx.quadraticCurveTo(canvasX, canvasY + canvasHeight, canvasX, canvasY + canvasHeight - radius);
+      ctx.quadraticCurveTo(
+        canvasX,
+        canvasY + canvasHeight,
+        canvasX,
+        canvasY + canvasHeight - radius,
+      );
       ctx.lineTo(canvasX, canvasY + radius);
       ctx.quadraticCurveTo(canvasX, canvasY, canvasX + radius, canvasY);
       ctx.closePath();

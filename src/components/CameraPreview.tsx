@@ -5,20 +5,45 @@
  * Critical iOS settings: autoPlay, playsInline, muted.
  */
 
-import { useEffect, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useRef } from 'react';
 
 interface CameraPreviewProps {
   stream: MediaStream | null;
 }
 
-export function CameraPreview({ stream }: CameraPreviewProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+export const CameraPreview = forwardRef<HTMLVideoElement, CameraPreviewProps>(
+  ({ stream }, forwardedRef) => {
+    const videoRef = useRef<HTMLVideoElement>(null);
 
-  useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-    }
-  }, [stream]);
+    // Merge forwarded ref with internal ref
+    const setRefs = useCallback(
+      (node: HTMLVideoElement | null) => {
+        videoRef.current = node;
+        if (typeof forwardedRef === 'function') {
+          forwardedRef(node);
+        } else if (forwardedRef) {
+          (forwardedRef as React.MutableRefObject<HTMLVideoElement | null>).current = node;
+        }
+      },
+      [forwardedRef],
+    );
 
-  return <video ref={videoRef} autoPlay playsInline muted className="camera-preview" />;
-}
+    useEffect(() => {
+      if (videoRef.current && stream) {
+        videoRef.current.srcObject = stream;
+      }
+    }, [stream]);
+
+    return (
+      <video
+        ref={setRefs}
+        autoPlay
+        playsInline
+        muted
+        className="absolute top-0 left-0 h-full w-full bg-black object-cover"
+      />
+    );
+  },
+);
+
+CameraPreview.displayName = 'CameraPreview';

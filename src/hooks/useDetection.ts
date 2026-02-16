@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
-import { ObjectDetector } from '../services/ObjectDetector';
+import { useEffect, useRef, useState } from 'react';
 import type { Detection } from '../services/ObjectDetector';
+import { ObjectDetector } from '../services/ObjectDetector';
 
 export function useDetection(
   videoRef: RefObject<HTMLVideoElement | null>,
-  enabled: boolean
+  enabled: boolean,
 ): { detections: Detection[]; modelLoading: boolean } {
   const detectorRef = useRef<ObjectDetector | null>(null);
   const [detections, setDetections] = useState<Detection[]>([]);
