@@ -21,7 +21,7 @@ import { useStorage } from './hooks/useStorage';
 import { useAppStore } from './store/appStore';
 
 function App() {
-  const { stream, error: cameraError, requestCamera, stopCamera } = useCamera();
+  const { stream, error: cameraError, requestCamera } = useCamera();
   const { start, stop } = useRecorder();
   const { stats } = useStorage();
   const { isPluggedIn } = useBattery();
@@ -38,7 +38,6 @@ function App() {
   const handleToggle = async () => {
     if (isRecording) {
       await stop();
-      stopCamera();
     } else {
       if (stream) {
         await start(stream);
@@ -56,8 +55,20 @@ function App() {
   }
 
   return (
-    <div id="app">
+    <div id="app" className="relative h-full w-full overflow-hidden">
       <CameraPreview stream={stream} />
+
+      {/* Cinematic vignette */}
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.5)_100%)]" />
+
+      {/* Viewfinder corner marks */}
+      <div className="pointer-events-none absolute inset-0 z-[2]">
+        <div className="absolute top-5 left-5 h-6 w-6 border-t border-l border-white/20" />
+        <div className="absolute top-5 right-5 h-6 w-6 border-t border-r border-white/20" />
+        <div className="absolute bottom-5 left-5 h-6 w-6 border-b border-l border-white/20" />
+        <div className="absolute bottom-5 right-5 h-6 w-6 border-b border-r border-white/20" />
+      </div>
+
       <RecordingControls isRecording={isRecording} onToggle={handleToggle} />
       <StatusStrip
         isRecording={isRecording}
