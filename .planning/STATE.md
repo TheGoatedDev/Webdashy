@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 Phase: 1 of 5 (Core Recording Engine)
 Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-16 - Completed quick task 2: Use a video file instead of camera in development mode
+Last activity: 2026-02-16 - Completed quick task 3: Make video stream continue playing regardless of recording state
 
 Progress: [██░░░░░░░░] 67%
 
@@ -68,9 +68,10 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 1 | Migrate ESLint to Biome | 2026-02-16 | b7d14d4 | [1-migrate-eslint-to-biome](./quick/1-migrate-eslint-to-biome/) |
 | 2 | Use a video file instead of camera in dev mode | 2026-02-16 | 2321b45 | [2-use-a-video-file-instead-of-camera-in-de](./quick/2-use-a-video-file-instead-of-camera-in-de/) |
+| 3 | Make video stream continue playing regardless of recording state | 2026-02-16 | 9451b3a | [3-make-video-stream-continue-playing-regar](./quick/3-make-video-stream-continue-playing-regar/) |
 
 ## Session Continuity
 
-Last session: 2026-02-16T21:34:41Z
-Stopped at: Completed quick task 2 (Use a video file instead of camera in dev mode)
+Last session: 2026-02-16T22:34:37Z
+Stopped at: Completed quick task 3 (Make video stream continue playing regardless of recording state)
 Resume file: None
