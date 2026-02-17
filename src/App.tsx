@@ -15,6 +15,7 @@ import { RecordingControls } from './components/RecordingControls';
 import { StatusStrip } from './components/StatusStrip';
 import { StoragePanel } from './components/StoragePanel';
 import { Toast } from './components/Toast';
+import { ZoomControl } from './components/ZoomControl';
 import { useBattery } from './hooks/useBattery';
 import { useCamera } from './hooks/useCamera';
 import { useDetection } from './hooks/useDetection';
@@ -25,7 +26,7 @@ import { useAppStore } from './store/appStore';
 function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const { stream, error: cameraError, requestCamera } = useCamera();
+  const { stream, error: cameraError, requestCamera, setZoom } = useCamera();
   const { start, stop } = useRecorder();
   const { stats } = useStorage();
   const { isPluggedIn } = useBattery();
@@ -91,6 +92,7 @@ function App() {
         <div className="absolute bottom-5 right-5 h-6 w-6 border-b border-r border-white/20" />
       </div>
 
+      <ZoomControl onZoomChange={setZoom} />
       <RecordingControls isRecording={isRecording} onToggle={handleToggle} />
       <StatusStrip
         isRecording={isRecording}

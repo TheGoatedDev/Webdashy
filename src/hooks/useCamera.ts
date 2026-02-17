@@ -14,6 +14,7 @@ interface UseCameraReturn {
   error: string | null;
   requestCamera: () => Promise<void>;
   stopCamera: () => void;
+  setZoom: (level: number) => void;
 }
 
 export function useCamera(): UseCameraReturn {
@@ -21,7 +22,7 @@ export function useCamera(): UseCameraReturn {
   const [error, setError] = useState<string | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const { setCameraError, setCameraReady } = useAppStore();
+  const { setCameraError, setCameraReady, setZoomCapabilities, setZoomLevel } = useAppStore();
 
   const requestCamera = useCallback(async () => {
     try {
@@ -39,6 +40,19 @@ export function useCamera(): UseCameraReturn {
       streamRef.current = mediaStream;
       setStream(mediaStream);
       setCameraReady(true);
+
+      // Check zoom capabilities
+      const videoTrack = mediaStream.getVideoTracks()[0];
+      if (videoTrack) {
+        const capabilities = videoTrack.getCapabilities();
+        if (capabilities.zoom) {
+          setZoomCapabilities(
+            capabilities.zoom.min,
+            capabilities.zoom.max,
+            capabilities.zoom.step,
+          );
+        }
+      }
     } catch (err) {
       let errorMessage = 'Camera is not available right now';
 
@@ -58,7 +72,22 @@ export function useCamera(): UseCameraReturn {
       setCameraError(errorMessage);
       setCameraReady(false);
     }
-  }, [setCameraError, setCameraReady]);
+  }, [setCameraError, setCameraReady, setZoomCapabilities]);
+
+  const setZoom = useCallback(
+    (level: number) => {
+      const videoTrack = streamRef.current?.getVideoTracks()[0];
+      if (!videoTrack) return;
+
+      videoTrack
+        .applyConstraints({ advanced: [{ zoom: level } as MediaTrackConstraintSet] })
+        .then(() => setZoomLevel(level))
+        .catch(() => {
+          // Silently fail — device may not support this zoom level
+        });
+    },
+    [setZoomLevel],
+  );
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -87,5 +116,6 @@ export function useCamera(): UseCameraReturn {
     error,
     requestCamera,
     stopCamera,
+    setZoom,
   };
 }

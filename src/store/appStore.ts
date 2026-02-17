@@ -37,6 +37,13 @@ interface AppState {
   // Detection state
   detectionEnabled: boolean;
 
+  // Zoom state
+  zoomLevel: number;
+  zoomMin: number;
+  zoomMax: number;
+  zoomStep: number;
+  zoomSupported: boolean;
+
   // Toast messages
   toasts: Toast[];
 
@@ -51,6 +58,8 @@ interface AppState {
   toggleStoragePanel: () => void;
   setBatteryState: (pluggedIn: boolean, level: number | null) => void;
   toggleDetection: () => void;
+  setZoomCapabilities: (min: number, max: number, step: number) => void;
+  setZoomLevel: (level: number) => void;
   addToast: (message: string, type: 'info' | 'warning' | 'error') => void;
   removeToast: (id: string) => void;
 }
@@ -69,6 +78,11 @@ export const useAppStore = create<AppState>((set) => ({
   batteryLevel: null,
   showBatteryWarning: false,
   detectionEnabled: true,
+  zoomLevel: 1,
+  zoomMin: 1,
+  zoomMax: 1,
+  zoomStep: 0.1,
+  zoomSupported: false,
   toasts: [],
 
   // Actions
@@ -91,6 +105,11 @@ export const useAppStore = create<AppState>((set) => ({
   setBatteryState: (pluggedIn, level) => set({ isPluggedIn: pluggedIn, batteryLevel: level }),
 
   toggleDetection: () => set((state) => ({ detectionEnabled: !state.detectionEnabled })),
+
+  setZoomCapabilities: (min, max, step) =>
+    set({ zoomMin: min, zoomMax: max, zoomStep: step, zoomSupported: true, zoomLevel: min }),
+
+  setZoomLevel: (level) => set({ zoomLevel: level }),
 
   addToast: (message, type) => {
     const id = crypto.randomUUID();
