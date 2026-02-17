@@ -59,9 +59,8 @@ export class ObjectDetector {
 
   async load(): Promise<void> {
     const startTime = performance.now();
-    ort.env.wasm.wasmPaths = '/';
     this.session = await ort.InferenceSession.create(MODEL_URL, {
-      executionProviders: ['webgl', 'wasm'],
+      executionProviders: ['wasm'],
     });
     const loadTime = Math.round(performance.now() - startTime);
     console.log(`[ObjectDetector] Model loaded in ${loadTime}ms`);
