@@ -10,6 +10,7 @@ export function useDetection(
   const detectorRef = useRef<ObjectDetector | null>(null);
   const [detections, setDetections] = useState<Detection[]>([]);
   const [modelLoading, setModelLoading] = useState<boolean>(false);
+  const [modelLoaded, setModelLoaded] = useState<boolean>(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load model when enabled becomes true
@@ -30,6 +31,7 @@ export function useDetection(
         .load()
         .then(() => {
           setModelLoading(false);
+          setModelLoaded(true);
         })
         .catch((error) => {
           console.error('[useDetection] Failed to load model:', error);
@@ -40,7 +42,7 @@ export function useDetection(
 
   // Run detection loop
   useEffect(() => {
-    if (!enabled || !detectorRef.current?.isLoaded() || !videoRef.current) {
+    if (!enabled || !modelLoaded || !detectorRef.current?.isLoaded() || !videoRef.current) {
       return;
     }
 
@@ -50,11 +52,11 @@ export function useDetection(
 
     const DETECTION_INTERVAL_MS = 66; // ~15 FPS
 
-    const runDetection = () => {
+    const runDetection = async () => {
       if (cancelled) return;
 
       try {
-        const results = detector.detect(video, performance.now());
+        const results = await detector.detect(video, performance.now());
         if (!cancelled) {
           setDetections(results);
         }
@@ -76,7 +78,7 @@ export function useDetection(
         timerRef.current = null;
       }
     };
-  }, [enabled, modelLoading, videoRef]);
+  }, [enabled, modelLoaded, videoRef]);
 
   // Cleanup on unmount or when disabled
   useEffect(() => {

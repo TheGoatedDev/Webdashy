@@ -12,8 +12,7 @@ export interface DetectionConfig {
   maxDetections: number;
 }
 
-const MODEL_URL =
-  'https://huggingface.co/nickmuchi/yolov8n-onnx/resolve/main/yolov8n.onnx';
+const MODEL_URL = 'https://huggingface.co/nickmuchi/yolov8n-onnx/resolve/main/yolov8n.onnx';
 
 const COCO_LABELS = [
   'person',
@@ -98,6 +97,8 @@ const COCO_LABELS = [
   'toothbrush',
 ];
 
+type DrawingContext = OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
+
 export class ObjectDetector {
   private session: ort.InferenceSession | null = null;
   private config: DetectionConfig = {
@@ -108,8 +109,7 @@ export class ObjectDetector {
   private targetClassSet: Set<string>;
   private inputName = 'images';
   private outputName = 'output0';
-  private canvas: OffscreenCanvas | HTMLCanvasElement | null = null;
-  private ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D | null = null;
+  private canvasCtx: DrawingContext | null = null;
   private letterbox: { scale: number; padX: number; padY: number } = { scale: 1, padX: 0, padY: 0 };
 
   constructor() {
@@ -127,23 +127,26 @@ export class ObjectDetector {
     console.log(`[ObjectDetector] YOLOv8n loaded in ${loadTime}ms`);
   }
 
+  private getCanvasCtx(): DrawingContext {
+    if (this.canvasCtx) return this.canvasCtx;
+
+    const MODEL_SIZE = 640;
+    if (typeof OffscreenCanvas !== 'undefined') {
+      const canvas = new OffscreenCanvas(MODEL_SIZE, MODEL_SIZE);
+      this.canvasCtx = canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
+    } else {
+      const canvas = document.createElement('canvas');
+      canvas.width = MODEL_SIZE;
+      canvas.height = MODEL_SIZE;
+      this.canvasCtx = canvas.getContext('2d') as CanvasRenderingContext2D;
+    }
+    return this.canvasCtx;
+  }
+
   private preprocess(video: HTMLVideoElement): ort.Tensor {
     const MODEL_SIZE = 640;
+    const ctx = this.getCanvasCtx();
 
-    if (!this.canvas) {
-      if (typeof OffscreenCanvas !== 'undefined') {
-        this.canvas = new OffscreenCanvas(MODEL_SIZE, MODEL_SIZE);
-        this.ctx = this.canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
-      } else {
-        const c = document.createElement('canvas');
-        c.width = MODEL_SIZE;
-        c.height = MODEL_SIZE;
-        this.canvas = c;
-        this.ctx = c.getContext('2d') as CanvasRenderingContext2D;
-      }
-    }
-
-    const ctx = this.ctx!;
     const vw = video.videoWidth;
     const vh = video.videoHeight;
 
@@ -157,8 +160,7 @@ export class ObjectDetector {
     this.letterbox = { scale, padX, padY };
 
     // Fill with gray (YOLO standard padding value)
-    (ctx as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D).fillStyle =
-      `rgb(114, 114, 114)`;
+    ctx.fillStyle = 'rgb(114, 114, 114)';
     ctx.fillRect(0, 0, MODEL_SIZE, MODEL_SIZE);
     ctx.drawImage(video, padX, padY, scaledW, scaledH);
 
@@ -177,11 +179,7 @@ export class ObjectDetector {
     return new ort.Tensor('float32', float32, [1, 3, MODEL_SIZE, MODEL_SIZE]);
   }
 
-  private postprocess(
-    output: ort.Tensor,
-    videoWidth: number,
-    videoHeight: number,
-  ): Detection[] {
+  private postprocess(output: ort.Tensor, videoWidth: number, videoHeight: number): Detection[] {
     const data = output.data as Float32Array;
     // Output shape: [1, 84, 8400]
     // Rows 0-3: cx, cy, w, h in model space (640x640)
@@ -259,10 +257,7 @@ export class ObjectDetector {
     return result;
   }
 
-  private iou(
-    a: [number, number, number, number],
-    b: [number, number, number, number],
-  ): number {
+  private iou(a: [number, number, number, number], b: [number, number, number, number]): number {
     const [ax, ay, aw, ah] = a;
     const [bx, by, bw, bh] = b;
 
@@ -300,8 +295,7 @@ export class ObjectDetector {
     if (this.session) {
       this.session.release();
       this.session = null;
-      this.canvas = null;
-      this.ctx = null;
+      this.canvasCtx = null;
       console.log('[ObjectDetector] Model disposed');
     }
   }
