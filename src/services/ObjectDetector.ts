@@ -102,7 +102,14 @@ type DrawingContext = OffscreenCanvasRenderingContext2D | CanvasRenderingContext
 export class ObjectDetector {
   private session: ort.InferenceSession | null = null;
   private config: DetectionConfig = {
-    targetClasses: ['car', 'person', 'truck', 'bus', 'bicycle', 'motorcycle'],
+    targetClasses: [
+      // People
+      'person',
+      // Vehicles
+      'bicycle', 'car', 'motorcycle', 'bus', 'truck',
+      // Animals
+      'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe',
+    ],
     minConfidence: 0.5,
     maxDetections: 20,
   };
@@ -147,12 +154,12 @@ export class ObjectDetector {
     return this.canvasCtx;
   }
 
-  private preprocess(video: HTMLVideoElement): ort.Tensor {
+  private preprocess(frame: ImageBitmap): ort.Tensor {
     const MODEL_SIZE = 640;
     const ctx = this.getCanvasCtx();
 
-    const vw = video.videoWidth;
-    const vh = video.videoHeight;
+    const vw = frame.width;
+    const vh = frame.height;
 
     // Letterbox: scale to fit within 640x640, maintaining aspect ratio
     const scale = Math.min(MODEL_SIZE / vw, MODEL_SIZE / vh);
@@ -166,7 +173,7 @@ export class ObjectDetector {
     // Fill with gray (YOLO standard padding value)
     ctx.fillStyle = 'rgb(114, 114, 114)';
     ctx.fillRect(0, 0, MODEL_SIZE, MODEL_SIZE);
-    ctx.drawImage(video, padX, padY, scaledW, scaledH);
+    ctx.drawImage(frame, padX, padY, scaledW, scaledH);
 
     const imageData = ctx.getImageData(0, 0, MODEL_SIZE, MODEL_SIZE);
     const rgba = imageData.data;
@@ -279,16 +286,16 @@ export class ObjectDetector {
     return interArea / (aArea + bArea - interArea);
   }
 
-  async detect(video: HTMLVideoElement, _timestampMs: number): Promise<Detection[]> {
-    if (!this.session || !video || video.videoWidth === 0) {
+  async detect(frame: ImageBitmap): Promise<Detection[]> {
+    if (!this.session || !frame || frame.width === 0) {
       return [];
     }
 
-    const inputTensor = this.preprocess(video);
+    const inputTensor = this.preprocess(frame);
     const output = await this.session.run({ [this.inputName]: inputTensor });
     const outputTensor = output[this.outputName];
 
-    return this.postprocess(outputTensor, video.videoWidth, video.videoHeight);
+    return this.postprocess(outputTensor, frame.width, frame.height);
   }
 
   isLoaded(): boolean {
