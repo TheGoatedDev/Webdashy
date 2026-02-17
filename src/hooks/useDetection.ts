@@ -1,97 +1,92 @@
 import type { RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { Detection } from '../services/ObjectDetector';
+import { ObjectDetector } from '../services/ObjectDetector';
 
 export function useDetection(
   videoRef: RefObject<HTMLVideoElement | null>,
   enabled: boolean,
 ): { detections: Detection[]; modelLoading: boolean } {
-  const workerRef = useRef<Worker | null>(null);
+  const detectorRef = useRef<ObjectDetector | null>(null);
   const [detections, setDetections] = useState<Detection[]>([]);
-  const [modelLoading, setModelLoading] = useState(false);
-  const [modelLoaded, setModelLoaded] = useState(false);
-  const busyRef = useRef(false);
-  const rafRef = useRef(0);
+  const [modelLoading, setModelLoading] = useState<boolean>(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Create worker and load model
+  // Load model when enabled becomes true
   useEffect(() => {
     if (!enabled) return;
 
-    const worker = new Worker(
-      new URL('../services/detection.worker.ts', import.meta.url),
-      { type: 'module' },
-    );
-    workerRef.current = worker;
+    // Create detector instance once
+    if (!detectorRef.current) {
+      detectorRef.current = new ObjectDetector();
+    }
 
-    worker.onmessage = (e: MessageEvent) => {
-      const { type } = e.data;
-      if (type === 'loaded') {
-        setModelLoading(false);
-        setModelLoaded(true);
-      } else if (type === 'detections') {
-        setDetections(e.data.detections);
-        busyRef.current = false;
-      } else if (type === 'error') {
-        console.error('[useDetection]', e.data.error);
-        busyRef.current = false;
-      }
-    };
+    const detector = detectorRef.current;
 
-    setModelLoading(true);
-    worker.postMessage({ type: 'load' });
-
-    return () => {
-      worker.terminate();
-      workerRef.current = null;
-      setModelLoaded(false);
-      setDetections([]);
-    };
+    // Load model if not already loaded
+    if (!detector.isLoaded()) {
+      setModelLoading(true);
+      detector
+        .load()
+        .then(() => {
+          setModelLoading(false);
+        })
+        .catch((error) => {
+          console.error('[useDetection] Failed to load model:', error);
+          setModelLoading(false);
+        });
+    }
   }, [enabled]);
 
-  // Detection loop via requestAnimationFrame
+  // Run detection loop
   useEffect(() => {
-    if (!enabled || !modelLoaded || !videoRef.current) return;
+    if (!enabled || !detectorRef.current?.isLoaded() || !videoRef.current) {
+      return;
+    }
 
+    const detector = detectorRef.current;
     const video = videoRef.current;
-    const worker = workerRef.current;
-    if (!worker) return;
-
     let cancelled = false;
-    let lastSendTime = 0;
-    const MIN_INTERVAL = 66; // ~15 FPS cap
 
-    const tick = (): void => {
+    const DETECTION_INTERVAL_MS = 66; // ~15 FPS
+
+    const runDetection = () => {
       if (cancelled) return;
 
-      const now = performance.now();
-      if (!busyRef.current && now - lastSendTime >= MIN_INTERVAL && video.readyState >= 2) {
-        busyRef.current = true;
-        lastSendTime = now;
-
-        createImageBitmap(video)
-          .then((frame) => {
-            if (cancelled) {
-              frame.close();
-              busyRef.current = false;
-              return;
-            }
-            worker.postMessage({ type: 'detect', frame }, [frame]);
-          })
-          .catch(() => {
-            busyRef.current = false;
-          });
+      try {
+        const results = detector.detect(video, performance.now());
+        if (!cancelled) {
+          setDetections(results);
+        }
+      } catch (error) {
+        console.error('[useDetection] Detection error:', error);
       }
 
-      rafRef.current = requestAnimationFrame(tick);
+      if (!cancelled) {
+        timerRef.current = setTimeout(runDetection, DETECTION_INTERVAL_MS);
+      }
     };
 
-    rafRef.current = requestAnimationFrame(tick);
+    timerRef.current = setTimeout(runDetection, DETECTION_INTERVAL_MS);
 
     return () => {
       cancelled = true;
-      cancelAnimationFrame(rafRef.current);
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
     };
-  }, [enabled, modelLoaded, videoRef]);
+  }, [enabled, modelLoading, videoRef]);
+
+  // Cleanup on unmount or when disabled
+  useEffect(() => {
+    return () => {
+      if (!enabled && detectorRef.current) {
+        detectorRef.current.dispose();
+        detectorRef.current = null;
+      }
+    };
+  }, [enabled]);
 
   return { detections, modelLoading };
 }
