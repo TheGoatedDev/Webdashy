@@ -9,6 +9,7 @@
 
 import { useEffect, useRef } from 'react';
 import { CameraPreview } from './components/CameraPreview';
+import { CropRegionControl } from './components/CropRegionControl';
 import { DetectionOverlay } from './components/DetectionOverlay';
 import { ErrorScreen } from './components/ErrorScreen';
 import { RecordingControls } from './components/RecordingControls';
@@ -93,6 +94,7 @@ function App() {
       </div>
 
       <ZoomControl onZoomChange={setZoom} />
+      <CropRegionControl />
       <RecordingControls isRecording={isRecording} onToggle={handleToggle} />
       <StatusStrip
         isRecording={isRecording}
