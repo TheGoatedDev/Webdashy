@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 import { useEffect, useRef } from 'react';
 import type { Detection } from '../services/ObjectDetector';
+import { useAppStore } from '../store/appStore';
 
 interface DetectionOverlayProps {
   detections: Detection[];
@@ -9,8 +10,9 @@ interface DetectionOverlayProps {
 
 export function DetectionOverlay({ detections, videoRef }: DetectionOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { cropTop, cropBottom } = useAppStore();
 
-  // Draw detections on canvas
+  // Draw detections and crop region on canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
@@ -24,6 +26,19 @@ export function DetectionOverlay({ detections, videoRef }: DetectionOverlayProps
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw crop region darkened areas (outside crop bounds)
+    const topBarHeight = (cropTop / 100) * canvas.height;
+    const bottomBarStart = (cropBottom / 100) * canvas.height;
+    const bottomBarHeight = canvas.height - bottomBarStart;
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    if (topBarHeight > 0) {
+      ctx.fillRect(0, 0, canvas.width, topBarHeight);
+    }
+    if (bottomBarHeight > 0) {
+      ctx.fillRect(0, bottomBarStart, canvas.width, bottomBarHeight);
+    }
 
     // Get video and canvas dimensions
     const videoAspect = video.videoWidth / video.videoHeight;
@@ -115,7 +130,7 @@ export function DetectionOverlay({ detections, videoRef }: DetectionOverlayProps
 
     // Reset alpha
     ctx.globalAlpha = 1;
-  }, [detections, videoRef]);
+  }, [detections, videoRef, cropTop, cropBottom]);
 
   // Sync canvas size with video element display size using ResizeObserver
   useEffect(() => {

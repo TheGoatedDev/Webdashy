@@ -2,6 +2,7 @@ import type { RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { Detection } from '../services/ObjectDetector';
 import { ObjectDetector } from '../services/ObjectDetector';
+import { useAppStore } from '../store/appStore';
 
 export function useDetection(
   videoRef: RefObject<HTMLVideoElement | null>,
@@ -10,7 +11,8 @@ export function useDetection(
   const detectorRef = useRef<ObjectDetector | null>(null);
   const [detections, setDetections] = useState<Detection[]>([]);
   const [modelLoading, setModelLoading] = useState<boolean>(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const busyRef = useRef<boolean>(false);
+  const rafRef = useRef<number>(0);
 
   // Load model when enabled becomes true
   useEffect(() => {
@@ -38,7 +40,7 @@ export function useDetection(
     }
   }, [enabled]);
 
-  // Run detection loop
+  // Run detection loop via requestAnimationFrame with back-pressure
   useEffect(() => {
     if (!enabled || !detectorRef.current?.isLoaded() || !videoRef.current) {
       return;
@@ -46,35 +48,33 @@ export function useDetection(
 
     const detector = detectorRef.current;
     const video = videoRef.current;
-    let cancelled = false;
 
-    const DETECTION_INTERVAL_MS = 66; // ~15 FPS
+    const loop = () => {
+      rafRef.current = requestAnimationFrame(loop);
 
-    const runDetection = () => {
-      if (cancelled) return;
+      if (busyRef.current) return; // skip if previous inference still running
+      if (video.videoWidth === 0) return;
 
-      try {
-        const results = detector.detect(video, performance.now());
-        if (!cancelled) {
+      busyRef.current = true;
+      const { cropTop, cropBottom } = useAppStore.getState();
+      detector
+        .detect(video, cropTop, cropBottom)
+        .then((results) => {
           setDetections(results);
-        }
-      } catch (error) {
-        console.error('[useDetection] Detection error:', error);
-      }
-
-      if (!cancelled) {
-        timerRef.current = setTimeout(runDetection, DETECTION_INTERVAL_MS);
-      }
+        })
+        .catch((err) => {
+          console.error('[useDetection]', err);
+        })
+        .finally(() => {
+          busyRef.current = false;
+        });
     };
 
-    timerRef.current = setTimeout(runDetection, DETECTION_INTERVAL_MS);
+    rafRef.current = requestAnimationFrame(loop);
 
     return () => {
-      cancelled = true;
-      if (timerRef.current !== null) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
+      cancelAnimationFrame(rafRef.current);
+      busyRef.current = false;
     };
   }, [enabled, modelLoading, videoRef]);
 
