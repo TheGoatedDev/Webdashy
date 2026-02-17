@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 Phase: 1 of 5 (Core Recording Engine)
 Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-16 - Completed quick task 4: Implement basic computer vision model for car and person detection
+Last activity: 2026-02-17 - Completed quick task 5: Migrate object detection from MediaPipe to YOLOv8n via ONNX Runtime Web
 
 Progress: [██░░░░░░░░] 67%
 
@@ -53,6 +53,8 @@ Recent decisions affecting current work:
 - Circuit breaker restarts MediaRecorder every 60min to prevent memory leaks (01-02)
 - Background timeout: stop recording if app hidden for 10+ seconds (01-02)
 - Session state persisted after every chunk for crash recovery (01-02)
+- ONNX detection uses webgl/wasm providers (not webgpu) to avoid COOP/COEP header requirements (quick-5)
+- YOLOv8n letterboxes video to 640x640 with gray (114,114,114) padding; bbox output mapped back to pixel coords (quick-5)
 
 ### Pending Todos
 
@@ -70,9 +72,10 @@ None yet.
 | 2 | Use a video file instead of camera in dev mode | 2026-02-16 | 2321b45 | [2-use-a-video-file-instead-of-camera-in-de](./quick/2-use-a-video-file-instead-of-camera-in-de/) |
 | 3 | Make video stream continue playing regardless of recording state | 2026-02-16 | 9451b3a | [3-make-video-stream-continue-playing-regar](./quick/3-make-video-stream-continue-playing-regar/) |
 | 4 | Implement basic computer vision model for car and person detection | 2026-02-16 | b343f0a | [4-implement-basic-computer-vision-model-fo](./quick/4-implement-basic-computer-vision-model-fo/) |
+| 5 | Migrate object detection from MediaPipe to YOLOv8n via ONNX Runtime Web | 2026-02-17 | 6f1416c | [5-migrate-object-detection-from-mediapipe-](./quick/5-migrate-object-detection-from-mediapipe-/) |
 
 ## Session Continuity
 
-Last session: 2026-02-16T22:48:34Z
-Stopped at: Completed quick task 4 (Implement basic computer vision model for car and person detection)
+Last session: 2026-02-17T15:14:53Z
+Stopped at: Completed quick task 5 (Migrate object detection from MediaPipe to YOLOv8n via ONNX Runtime Web)
 Resume file: None

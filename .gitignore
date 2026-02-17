@@ -27,3 +27,6 @@ dist-ssr
 
 # Dev camera video file (local only)
 public/dev-camera.*
+
+# ML model files (downloaded separately)
+public/models/*.onnx

@@ -12,7 +12,7 @@ export interface DetectionConfig {
   maxDetections: number;
 }
 
-const MODEL_URL = 'https://huggingface.co/nickmuchi/yolov8n-onnx/resolve/main/yolov8n.onnx';
+const MODEL_URL = '/models/yolov8n.onnx';
 
 const COCO_LABELS = [
   'person',
@@ -133,12 +133,16 @@ export class ObjectDetector {
     const MODEL_SIZE = 640;
     if (typeof OffscreenCanvas !== 'undefined') {
       const canvas = new OffscreenCanvas(MODEL_SIZE, MODEL_SIZE);
-      this.canvasCtx = canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
+      this.canvasCtx = canvas.getContext('2d', {
+        willReadFrequently: true,
+      }) as OffscreenCanvasRenderingContext2D;
     } else {
       const canvas = document.createElement('canvas');
       canvas.width = MODEL_SIZE;
       canvas.height = MODEL_SIZE;
-      this.canvasCtx = canvas.getContext('2d') as CanvasRenderingContext2D;
+      this.canvasCtx = canvas.getContext('2d', {
+        willReadFrequently: true,
+      }) as CanvasRenderingContext2D;
     }
     return this.canvasCtx;
   }
