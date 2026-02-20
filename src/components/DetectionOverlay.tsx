@@ -169,45 +169,6 @@ export function DetectionOverlay({ detections, videoRef, stats }: DetectionOverl
 
     // Reset alpha
     ctx.globalAlpha = 1;
-
-    // Debug: draw stats panel in bottom-left
-    if (debugOverlay) {
-      const lines = [
-        `FPS: ${stats.fps}`,
-        `INFERENCE: ${stats.inferenceMs}ms`,
-        `OBJECTS: ${stats.detectionCount}`,
-        `CROP: ${cropTop}%-${cropBottom}%`,
-        `RES: ${videoW}x${videoH}`,
-        `MODEL: ${Math.round(cropWidth / videoW * 100)}% W`,
-      ];
-
-      const lineHeight = 16;
-      const panelPadding = 8;
-      const panelWidth = 170;
-      const panelHeight = lines.length * lineHeight + panelPadding * 2;
-      const panelX = 8;
-      const panelY = canvas.height - panelHeight - 8;
-
-      // Panel background
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.beginPath();
-      ctx.roundRect(panelX, panelY, panelWidth, panelHeight, 4);
-      ctx.fill();
-
-      // Panel border
-      ctx.strokeStyle = 'rgba(255, 0, 0, 0.4)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.roundRect(panelX, panelY, panelWidth, panelHeight, 4);
-      ctx.stroke();
-
-      // Text
-      ctx.font = "11px 'Chakra Petch', monospace";
-      ctx.fillStyle = 'rgba(255, 80, 80, 0.9)';
-      for (let i = 0; i < lines.length; i++) {
-        ctx.fillText(lines[i], panelX + panelPadding, panelY + panelPadding + (i + 1) * lineHeight - 3);
-      }
-    }
   }, [detections, videoRef, cropTop, cropBottom, debugOverlay, stats]);
 
   // Sync canvas size with video element display size using ResizeObserver
@@ -233,10 +194,30 @@ export function DetectionOverlay({ detections, videoRef, stats }: DetectionOverl
     };
   }, [videoRef]);
 
+  // Compute stats for the debug panel (reads video dims at render time)
+  const video = videoRef.current;
+  const videoW = video?.videoWidth ?? 0;
+  const videoH = video?.videoHeight ?? 0;
+  const cropHeight = videoH * (cropBottom - cropTop) / 100;
+  const cropWidth = videoW > cropHeight ? cropHeight : videoW;
+  const modelPct = videoW > 0 ? Math.round(cropWidth / videoW * 100) : 0;
+
   return (
-    <canvas
-      ref={canvasRef}
-      className="absolute top-0 left-0 w-full h-full pointer-events-none z-[1]"
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        className="absolute top-0 left-0 w-full h-full pointer-events-none z-[1]"
+      />
+      {debugOverlay && (
+        <div className="fixed top-14 right-4 z-[100] min-w-[160px] rounded border border-red-500/40 bg-black/70 px-2 py-1.5 font-mono text-[11px] text-red-400/90 pointer-events-none">
+          <div>FPS: {stats.fps}</div>
+          <div>INFERENCE: {stats.inferenceMs}ms</div>
+          <div>OBJECTS: {stats.detectionCount}</div>
+          <div>CROP: {cropTop}%–{cropBottom}%</div>
+          <div>RES: {videoW}x{videoH}</div>
+          <div>MODEL: {modelPct}% W</div>
+        </div>
+      )}
+    </>
   );
 }

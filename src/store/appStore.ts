@@ -6,6 +6,7 @@
  */
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { StorageStats, StorageWarningLevel } from '../types/storage';
 
 interface Toast {
@@ -71,7 +72,7 @@ interface AppState {
   removeToast: (id: string) => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>()(persist((set) => ({
   // Initial state
   isRecording: false,
   elapsedMs: 0,
@@ -140,4 +141,7 @@ export const useAppStore = create<AppState>((set) => ({
   },
 
   removeToast: (id) => set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) })),
+}), {
+  name: 'webdashy-settings',
+  partialize: (state) => ({ cropTop: state.cropTop, cropBottom: state.cropBottom }),
 }));
