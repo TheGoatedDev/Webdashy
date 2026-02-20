@@ -86,7 +86,7 @@ function App() {
       {/* Model error indicator */}
       {modelError && !modelLoading && (
         <div className="fixed top-5 left-5 z-[5] font-display text-[10px] uppercase tracking-wider text-red-400/70 transition-opacity duration-500">
-          Detection unavailable
+          Detection unavailable: {modelError}
         </div>
       )}
 
