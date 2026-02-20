@@ -12,6 +12,7 @@
   --animate-rec-pulse: rec-pulse 1.5s ease-in-out infinite;
   --animate-glow: glow-pulse 2s ease-in-out infinite;
   --animate-toast-in: toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-plate-flash: plate-flash 0.4s ease-in-out 2;
 }
 
 @keyframes rec-pulse {
@@ -46,6 +47,16 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes plate-flash {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
   }
 }
 

@@ -13,6 +13,7 @@ import { CropRegionControl } from './components/CropRegionControl';
 import { DebugToggle } from './components/DebugToggle';
 import { DetectionOverlay } from './components/DetectionOverlay';
 import { ErrorScreen } from './components/ErrorScreen';
+import { PlateGallery } from './components/PlateGallery';
 import { RecordingControls } from './components/RecordingControls';
 import { StatusStrip } from './components/StatusStrip';
 import { StoragePanel } from './components/StoragePanel';
@@ -21,8 +22,10 @@ import { ZoomControl } from './components/ZoomControl';
 import { useBattery } from './hooks/useBattery';
 import { useCamera } from './hooks/useCamera';
 import { useDetection } from './hooks/useDetection';
+import { usePlateCapture } from './hooks/usePlateCapture';
 import { useRecorder } from './hooks/useRecorder';
 import { useStorage } from './hooks/useStorage';
+import { getClipStorage } from './services/ClipStorage';
 import { useAppStore } from './store/appStore';
 
 function App() {
@@ -40,14 +43,31 @@ function App() {
     showStoragePanel,
     toggleStoragePanel,
     detectionEnabled,
+    showPlateGallery,
+    togglePlateGallery,
+    plateCaptureEnabled,
+    setPlateCaptures,
   } = useAppStore();
 
   const { detections, modelLoading, modelError, stats: detectionStats } = useDetection(videoRef, detectionEnabled);
+  const { flashBboxes, vehicleDebugInfo } = usePlateCapture(videoRef, detections, detectionEnabled && plateCaptureEnabled);
 
   // Request camera on mount
   useEffect(() => {
     requestCamera();
   }, [requestCamera]);
+
+  // Load plate capture metadata from IndexedDB on mount
+  useEffect(() => {
+    getClipStorage()
+      .getAllPlateCaptureMetadata()
+      .then((captures) => {
+        setPlateCaptures(captures.sort((a, b) => b.timestamp - a.timestamp));
+      })
+      .catch((err: unknown) => {
+        console.error('[App] Failed to load plate captures:', err);
+      });
+  }, [setPlateCaptures]);
 
   // Handle record/stop toggle
   const handleToggle = async () => {
@@ -74,7 +94,13 @@ function App() {
       <CameraPreview ref={videoRef} stream={stream} />
 
       {/* Detection overlay */}
-      <DetectionOverlay detections={detections} videoRef={videoRef} stats={detectionStats} />
+      <DetectionOverlay
+        detections={detections}
+        videoRef={videoRef}
+        stats={detectionStats}
+        flashBboxes={flashBboxes}
+        vehicleDebugInfo={vehicleDebugInfo}
+      />
 
       {/* Model loading indicator */}
       {modelLoading && (
@@ -102,6 +128,37 @@ function App() {
       </div>
 
       <DebugToggle />
+
+      {/* Plate gallery toggle button */}
+      {detectionEnabled && (
+        <button
+          type="button"
+          onClick={togglePlateGallery}
+          aria-label="Toggle plate gallery"
+          className={`fixed top-14 right-4 z-[100] flex h-8 w-8 items-center justify-center rounded-full border transition-all duration-200 ${
+            showPlateGallery
+              ? 'border-warn/60 bg-warn/20 text-warn shadow-[0_0_8px_rgba(255,214,10,0.3)]'
+              : 'border-white/20 bg-black/40 text-white/40 hover:border-white/40 hover:text-white/60'
+          }`}
+          title="Plate gallery"
+        >
+          {/* License plate icon */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+          >
+            <rect x="2" y="7" width="20" height="10" rx="2" />
+            <path d="M7 11h2M11 11h2M15 11h2" />
+          </svg>
+        </button>
+      )}
+
       <ZoomControl onZoomChange={setZoom} />
       <CropRegionControl />
       <RecordingControls isRecording={isRecording} onToggle={handleToggle} />
@@ -112,6 +169,7 @@ function App() {
         onToggleStats={toggleStoragePanel}
       />
       <StoragePanel show={showStoragePanel} stats={stats} />
+      <PlateGallery show={showPlateGallery} />
       <Toast />
     </div>
   );

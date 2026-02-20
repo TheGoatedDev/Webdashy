@@ -2,6 +2,8 @@ import type { RefObject } from 'react';
 import { useEffect, useRef } from 'react';
 import type { Detection } from '../services/ObjectDetector';
 import type { DetectionStats } from '../hooks/useDetection';
+import type { VehicleDebugInfo } from '../services/VehicleTracker';
+import { PLATE_CONFIG } from '../config/plateConfig';
 import { useAppStore } from '../store/appStore';
 
 function roundRectPath(
@@ -28,9 +30,26 @@ interface DetectionOverlayProps {
   detections: Detection[];
   videoRef: RefObject<HTMLVideoElement | null>;
   stats: DetectionStats;
+  flashBboxes?: Array<[number, number, number, number]>;
+  vehicleDebugInfo?: VehicleDebugInfo[];
 }
 
-export function DetectionOverlay({ detections, videoRef, stats }: DetectionOverlayProps) {
+function bboxIou(
+  a: [number, number, number, number],
+  b: [number, number, number, number],
+): number {
+  const ax2 = a[0] + a[2];
+  const ay2 = a[1] + a[3];
+  const bx2 = b[0] + b[2];
+  const by2 = b[1] + b[3];
+  const ix = Math.max(0, Math.min(ax2, bx2) - Math.max(a[0], b[0]));
+  const iy = Math.max(0, Math.min(ay2, by2) - Math.max(a[1], b[1]));
+  const intersection = ix * iy;
+  const union = a[2] * a[3] + b[2] * b[3] - intersection;
+  return union > 0 ? intersection / union : 0;
+}
+
+export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, vehicleDebugInfo }: DetectionOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { cropTop, cropBottom, debugOverlay } = useAppStore();
 
@@ -128,13 +147,18 @@ export function DetectionOverlay({ detections, videoRef, stats }: DetectionOverl
       const canvasWidth = width * coverScale;
       const canvasHeight = height * coverScale;
 
-      // Choose color based on class
-      const isPerson = detection.class === 'person';
-      const color = isPerson ? '#ffd60a' : '#00d4aa'; // Yellow for people, HUD teal for vehicles
+      // Check if this bbox is currently flashing (plate just captured)
+      const isFlashing = flashBboxes?.some(
+        (fb) => bboxIou(detection.bbox, fb) >= 0.3,
+      ) ?? false;
 
-      // Draw rounded rectangle border
+      // Choose color based on class; flash overrides to warn yellow
+      const isPerson = detection.class === 'person';
+      const color = isFlashing ? '#ffd60a' : isPerson ? '#ffd60a' : '#00d4aa';
+
+      // Draw rounded rectangle border (thicker when flashing)
       ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = isFlashing ? 3 : 2;
       ctx.globalAlpha = 0.7;
       ctx.beginPath();
       const radius = 4;
@@ -165,31 +189,71 @@ export function DetectionOverlay({ detections, videoRef, stats }: DetectionOverl
       ctx.font = "11px 'Chakra Petch', monospace";
       ctx.globalAlpha = 1;
 
+      // Find matching tracker debug entry for this detection (when debug overlay is on)
+      const dbgEntry = debugOverlay
+        ? vehicleDebugInfo?.find((d) => bboxIou(detection.bbox, d.bbox) >= 0.3) ?? null
+        : null;
+
+      let debugLine: string | null = null;
+      if (dbgEntry) {
+        const areaStr = `A:${Math.round(dbgEntry.areaFraction * 100)}%`;
+        const widthStr = `W:${Math.round(dbgEntry.widthFraction * 100)}%`;
+        const frameStr = `F:${Math.min(dbgEntry.consecutiveLargeFrames, PLATE_CONFIG.MIN_STABLE_FRAMES)}/${PLATE_CONFIG.MIN_STABLE_FRAMES}`;
+        const suffix = dbgEntry.plateText
+          ? dbgEntry.plateText
+          : dbgEntry.cooldownRemainingMs > 0
+            ? `COOL ${Math.ceil(dbgEntry.cooldownRemainingMs / 1000)}s`
+            : '';
+        debugLine = `${areaStr} ${widthStr} ${frameStr}${suffix ? ` ${suffix}` : ''}`;
+      }
+
       // Measure text for background pill
-      const textMetrics = ctx.measureText(label);
-      const textWidth = textMetrics.width;
-      const textHeight = 11;
       const padding = 4;
-      const pillWidth = textWidth + padding * 2;
-      const pillHeight = textHeight + padding * 2;
+      const lineH = 11;
+      ctx.font = "11px 'Chakra Petch', monospace";
+      const mainWidth = ctx.measureText(label).width;
+      let debugWidth = 0;
+      if (debugLine) {
+        ctx.font = "10px 'Chakra Petch', monospace";
+        debugWidth = ctx.measureText(debugLine).width;
+      }
+      const pillWidth = Math.max(mainWidth, debugWidth) + padding * 2;
+      const pillHeight = debugLine
+        ? lineH + padding * 2 + lineH + 2
+        : lineH + padding * 2;
 
       // Position label above box (or below if too close to top)
       const labelY = canvasY > pillHeight + 4 ? canvasY - 4 : canvasY + canvasHeight + 4;
 
       // Draw background pill
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
       ctx.beginPath();
       roundRectPath(ctx, canvasX, labelY - pillHeight, pillWidth, pillHeight, 3);
       ctx.fill();
 
-      // Draw text
+      // Draw main label
+      ctx.font = "11px 'Chakra Petch', monospace";
       ctx.fillStyle = 'white';
-      ctx.fillText(label, canvasX + padding, labelY - padding - 2);
+      ctx.fillText(label, canvasX + padding, labelY - padding - (debugLine ? lineH + 4 : 2));
+
+      // Draw debug line
+      if (debugLine) {
+        ctx.font = "10px 'Chakra Petch', monospace";
+        const areaOk = dbgEntry!.areaFraction >= PLATE_CONFIG.MIN_AREA_FRACTION;
+        const widthOk = dbgEntry!.widthFraction >= PLATE_CONFIG.MIN_WIDTH_FRACTION;
+        const eligible = areaOk && widthOk;
+        ctx.fillStyle = dbgEntry!.cooldownRemainingMs > 0
+          ? 'rgba(255,100,100,0.85)'
+          : eligible
+            ? '#ffd60a'
+            : 'rgba(255,255,255,0.5)';
+        ctx.fillText(debugLine, canvasX + padding, labelY - padding - 2);
+      }
     }
 
     // Reset alpha
     ctx.globalAlpha = 1;
-  }, [detections, videoRef, cropTop, cropBottom, debugOverlay, stats]);
+  }, [detections, videoRef, cropTop, cropBottom, debugOverlay, stats, flashBboxes, vehicleDebugInfo]);
 
   // Sync canvas size with video element display size using ResizeObserver
   useEffect(() => {

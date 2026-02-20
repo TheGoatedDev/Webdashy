@@ -7,7 +7,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { StorageStats, StorageWarningLevel } from '../types/storage';
+import type { PlateCaptureMetadata, StorageStats, StorageWarningLevel } from '../types/storage';
 
 interface Toast {
   id: string;
@@ -50,6 +50,11 @@ interface AppState {
   zoomStep: number;
   zoomSupported: boolean;
 
+  // Plate capture state
+  plateCaptures: PlateCaptureMetadata[];
+  showPlateGallery: boolean;
+  plateCaptureEnabled: boolean;
+
   // Toast messages
   toasts: Toast[];
 
@@ -70,6 +75,13 @@ interface AppState {
   setZoomLevel: (level: number) => void;
   addToast: (message: string, type: 'info' | 'warning' | 'error') => void;
   removeToast: (id: string) => void;
+
+  // Plate capture actions
+  togglePlateGallery: () => void;
+  togglePlateCapture: () => void;
+  addPlateCaptureMetadata: (meta: PlateCaptureMetadata) => void;
+  removePlateCaptureMetadata: (id: string) => void;
+  setPlateCaptures: (captures: PlateCaptureMetadata[]) => void;
 }
 
 export const useAppStore = create<AppState>()(persist((set) => ({
@@ -94,6 +106,9 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   zoomMax: 1,
   zoomStep: 0.1,
   zoomSupported: false,
+  plateCaptures: [],
+  showPlateGallery: false,
+  plateCaptureEnabled: true,
   toasts: [],
 
   // Actions
@@ -141,7 +156,23 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   },
 
   removeToast: (id) => set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) })),
+
+  togglePlateGallery: () => set((state) => ({ showPlateGallery: !state.showPlateGallery })),
+
+  togglePlateCapture: () => set((state) => ({ plateCaptureEnabled: !state.plateCaptureEnabled })),
+
+  addPlateCaptureMetadata: (meta) =>
+    set((state) => ({ plateCaptures: [meta, ...state.plateCaptures] })),
+
+  removePlateCaptureMetadata: (id) =>
+    set((state) => ({ plateCaptures: state.plateCaptures.filter((c) => c.id !== id) })),
+
+  setPlateCaptures: (captures) => set({ plateCaptures: captures }),
 }), {
   name: 'webdashy-settings',
-  partialize: (state) => ({ cropTop: state.cropTop, cropBottom: state.cropBottom }),
+  partialize: (state) => ({
+    cropTop: state.cropTop,
+    cropBottom: state.cropBottom,
+    plateCaptureEnabled: state.plateCaptureEnabled,
+  }),
 }));

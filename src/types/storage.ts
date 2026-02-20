@@ -42,6 +42,28 @@ export const VIDEO_QUALITY_PRESETS: Record<VideoQuality, VideoQualityConfig> = {
   high: { width: 1920, height: 1080, bitrate: 5_000_000, label: '1080p' },
 };
 
+export interface PlateCapture {
+  id: string;
+  timestamp: number;
+  vehicleImageBlob: Blob;
+  plateRegionBlob: Blob;
+  plateText: string;
+  ocrConfidence: number;
+  vehicleClass: string;
+  detectionScore: number;
+  bbox: [number, number, number, number];
+}
+
+export interface PlateCaptureMetadata {
+  id: string;
+  timestamp: number;
+  plateText: string;
+  ocrConfidence: number;
+  vehicleClass: string;
+  detectionScore: number;
+  bbox: [number, number, number, number];
+}
+
 export interface DashcamDB extends DBSchema {
   buffer: {
     key: string;
@@ -56,6 +78,11 @@ export interface DashcamDB extends DBSchema {
   session: {
     key: string;
     value: SessionState;
+  };
+  plates: {
+    key: string;
+    value: PlateCapture;
+    indexes: { 'by-timestamp': number };
   };
 }
 

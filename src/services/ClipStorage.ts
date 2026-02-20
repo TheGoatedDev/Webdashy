@@ -1,5 +1,12 @@
 import { type IDBPDatabase, openDB } from 'idb';
-import type { BufferChunk, DashcamDB, SavedClip, SessionState } from '../types/storage';
+import type {
+  BufferChunk,
+  DashcamDB,
+  PlateCapture,
+  PlateCaptureMetadata,
+  SavedClip,
+  SessionState,
+} from '../types/storage';
 
 export class ClipStorage {
   private db: IDBPDatabase<DashcamDB> | null = null;
@@ -8,19 +15,26 @@ export class ClipStorage {
   private async init(): Promise<void> {
     if (this.db) return;
 
-    this.db = await openDB<DashcamDB>('dashcam-storage', 1, {
-      upgrade(db) {
-        // Buffer store for rolling circular buffer
-        const bufferStore = db.createObjectStore('buffer', { keyPath: 'id' });
-        bufferStore.createIndex('by-timestamp', 'timestamp');
-        bufferStore.createIndex('by-sequence', 'sequenceNumber');
+    this.db = await openDB<DashcamDB>('dashcam-storage', 2, {
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          // Buffer store for rolling circular buffer
+          const bufferStore = db.createObjectStore('buffer', { keyPath: 'id' });
+          bufferStore.createIndex('by-timestamp', 'timestamp');
+          bufferStore.createIndex('by-sequence', 'sequenceNumber');
 
-        // Saved clips store for permanent storage
-        const savedStore = db.createObjectStore('saved', { keyPath: 'id' });
-        savedStore.createIndex('by-timestamp', 'timestamp');
+          // Saved clips store for permanent storage
+          const savedStore = db.createObjectStore('saved', { keyPath: 'id' });
+          savedStore.createIndex('by-timestamp', 'timestamp');
 
-        // Session state store for recording status
-        db.createObjectStore('session', { keyPath: 'id' });
+          // Session state store for recording status
+          db.createObjectStore('session', { keyPath: 'id' });
+        }
+        if (oldVersion < 2) {
+          // Plate captures store
+          const platesStore = db.createObjectStore('plates', { keyPath: 'id' });
+          platesStore.createIndex('by-timestamp', 'timestamp');
+        }
       },
     });
 
@@ -152,6 +166,62 @@ export class ClipStorage {
   async clearSessionState(): Promise<void> {
     const db = await this.getDB();
     await db.delete('session', 'current');
+  }
+
+  // Plate capture operations
+  async addPlateCapture(capture: PlateCapture): Promise<void> {
+    await this.ensureInit();
+    await this.retryWrite(async () => {
+      const db = await this.getDB();
+      await db.add('plates', capture);
+    });
+  }
+
+  async getPlateCapture(id: string): Promise<PlateCapture | undefined> {
+    const db = await this.getDB();
+    return await db.get('plates', id);
+  }
+
+  async deletePlateCapture(id: string): Promise<void> {
+    const db = await this.getDB();
+    await db.delete('plates', id);
+  }
+
+  async getAllPlateCaptureMetadata(): Promise<PlateCaptureMetadata[]> {
+    const db = await this.getDB();
+    const all = await db.getAll('plates');
+    return all.map(({ id, timestamp, plateText, ocrConfidence, vehicleClass, detectionScore, bbox }) => ({
+      id,
+      timestamp,
+      plateText,
+      ocrConfidence,
+      vehicleClass,
+      detectionScore,
+      bbox,
+    }));
+  }
+
+  async getPlateCaptureCount(): Promise<number> {
+    const db = await this.getDB();
+    return await db.count('plates');
+  }
+
+  async pruneOldPlateCaptures(maxCount: number): Promise<void> {
+    const db = await this.getDB();
+    const count = await db.count('plates');
+    if (count <= maxCount) return;
+
+    const tx = db.transaction('plates', 'readwrite');
+    const index = tx.store.index('by-timestamp');
+    let cursor = await index.openCursor();
+    let toDelete = count - maxCount;
+
+    while (cursor && toDelete > 0) {
+      await cursor.delete();
+      toDelete--;
+      cursor = await cursor.continue();
+    }
+    await tx.done;
   }
 }
 
