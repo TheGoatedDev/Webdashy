@@ -4,15 +4,23 @@ import type { Detection } from '../services/ObjectDetector';
 import { ObjectDetector } from '../services/ObjectDetector';
 import { useAppStore } from '../store/appStore';
 
+export interface DetectionStats {
+  fps: number;
+  inferenceMs: number;
+  detectionCount: number;
+}
+
 export function useDetection(
   videoRef: RefObject<HTMLVideoElement | null>,
   enabled: boolean,
-): { detections: Detection[]; modelLoading: boolean } {
+): { detections: Detection[]; modelLoading: boolean; stats: DetectionStats } {
   const detectorRef = useRef<ObjectDetector | null>(null);
   const [detections, setDetections] = useState<Detection[]>([]);
   const [modelLoading, setModelLoading] = useState<boolean>(false);
+  const [stats, setStats] = useState<DetectionStats>({ fps: 0, inferenceMs: 0, detectionCount: 0 });
   const busyRef = useRef<boolean>(false);
   const rafRef = useRef<number>(0);
+  const frameTimesRef = useRef<number[]>([]);
 
   // Load model when enabled becomes true
   useEffect(() => {
@@ -57,10 +65,20 @@ export function useDetection(
 
       busyRef.current = true;
       const { cropTop, cropBottom } = useAppStore.getState();
+      const inferenceStart = performance.now();
       detector
         .detect(video, cropTop, cropBottom)
         .then((results) => {
+          const inferenceMs = performance.now() - inferenceStart;
+          const now = performance.now();
+          const frameTimes = frameTimesRef.current;
+          frameTimes.push(now);
+          // Keep only frames from the last 1 second
+          while (frameTimes.length > 0 && now - frameTimes[0] > 1000) {
+            frameTimes.shift();
+          }
           setDetections(results);
+          setStats({ fps: frameTimes.length, inferenceMs: Math.round(inferenceMs), detectionCount: results.length });
         })
         .catch((err) => {
           console.error('[useDetection]', err);
@@ -88,5 +106,5 @@ export function useDetection(
     };
   }, [enabled]);
 
-  return { detections, modelLoading };
+  return { detections, modelLoading, stats };
 }

@@ -36,6 +36,7 @@ interface AppState {
 
   // Detection state
   detectionEnabled: boolean;
+  debugOverlay: boolean;
 
   // Crop region state
   cropTop: number;
@@ -62,6 +63,7 @@ interface AppState {
   toggleStoragePanel: () => void;
   setBatteryState: (pluggedIn: boolean, level: number | null) => void;
   toggleDetection: () => void;
+  toggleDebugOverlay: () => void;
   setCropRegion: (top: number, bottom: number) => void;
   setZoomCapabilities: (min: number, max: number, step: number) => void;
   setZoomLevel: (level: number) => void;
@@ -83,6 +85,7 @@ export const useAppStore = create<AppState>((set) => ({
   batteryLevel: null,
   showBatteryWarning: false,
   detectionEnabled: true,
+  debugOverlay: false,
   cropTop: 0,
   cropBottom: 100,
   zoomLevel: 1,
@@ -112,6 +115,8 @@ export const useAppStore = create<AppState>((set) => ({
   setBatteryState: (pluggedIn, level) => set({ isPluggedIn: pluggedIn, batteryLevel: level }),
 
   toggleDetection: () => set((state) => ({ detectionEnabled: !state.detectionEnabled })),
+
+  toggleDebugOverlay: () => set((state) => ({ debugOverlay: !state.debugOverlay })),
 
   setCropRegion: (top, bottom) => set({ cropTop: top, cropBottom: bottom }),
 

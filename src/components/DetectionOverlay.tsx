@@ -1,16 +1,18 @@
 import type { RefObject } from 'react';
 import { useEffect, useRef } from 'react';
 import type { Detection } from '../services/ObjectDetector';
+import type { DetectionStats } from '../hooks/useDetection';
 import { useAppStore } from '../store/appStore';
 
 interface DetectionOverlayProps {
   detections: Detection[];
   videoRef: RefObject<HTMLVideoElement | null>;
+  stats: DetectionStats;
 }
 
-export function DetectionOverlay({ detections, videoRef }: DetectionOverlayProps) {
+export function DetectionOverlay({ detections, videoRef, stats }: DetectionOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { cropTop, cropBottom } = useAppStore();
+  const { cropTop, cropBottom, debugOverlay } = useAppStore();
 
   // Draw detections and crop region on canvas
   useEffect(() => {
@@ -38,6 +40,26 @@ export function DetectionOverlay({ detections, videoRef }: DetectionOverlayProps
     }
     if (bottomBarHeight > 0) {
       ctx.fillRect(0, bottomBarStart, canvas.width, bottomBarHeight);
+    }
+
+    // Debug: draw transparent red box for the detection zone
+    if (debugOverlay) {
+      const zoneY = topBarHeight;
+      const zoneHeight = bottomBarStart - topBarHeight;
+
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
+      ctx.fillRect(0, zoneY, canvas.width, zoneHeight);
+
+      ctx.strokeStyle = 'rgba(255, 0, 0, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 4]);
+      ctx.strokeRect(1, zoneY + 1, canvas.width - 2, zoneHeight - 2);
+      ctx.setLineDash([]);
+
+      // Label the detection zone
+      ctx.font = "bold 11px 'Chakra Petch', monospace";
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+      ctx.fillText('DETECTION ZONE', 8, zoneY + 16);
     }
 
     // Get video and canvas dimensions
@@ -130,7 +152,45 @@ export function DetectionOverlay({ detections, videoRef }: DetectionOverlayProps
 
     // Reset alpha
     ctx.globalAlpha = 1;
-  }, [detections, videoRef, cropTop, cropBottom]);
+
+    // Debug: draw stats panel in bottom-left
+    if (debugOverlay) {
+      const lines = [
+        `FPS: ${stats.fps}`,
+        `INFERENCE: ${stats.inferenceMs}ms`,
+        `OBJECTS: ${stats.detectionCount}`,
+        `CROP: ${cropTop}%-${cropBottom}%`,
+        `RES: ${video.videoWidth}x${video.videoHeight}`,
+      ];
+
+      const lineHeight = 16;
+      const panelPadding = 8;
+      const panelWidth = 170;
+      const panelHeight = lines.length * lineHeight + panelPadding * 2;
+      const panelX = 8;
+      const panelY = canvas.height - panelHeight - 8;
+
+      // Panel background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.beginPath();
+      ctx.roundRect(panelX, panelY, panelWidth, panelHeight, 4);
+      ctx.fill();
+
+      // Panel border
+      ctx.strokeStyle = 'rgba(255, 0, 0, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(panelX, panelY, panelWidth, panelHeight, 4);
+      ctx.stroke();
+
+      // Text
+      ctx.font = "11px 'Chakra Petch', monospace";
+      ctx.fillStyle = 'rgba(255, 80, 80, 0.9)';
+      for (let i = 0; i < lines.length; i++) {
+        ctx.fillText(lines[i], panelX + panelPadding, panelY + panelPadding + (i + 1) * lineHeight - 3);
+      }
+    }
+  }, [detections, videoRef, cropTop, cropBottom, debugOverlay, stats]);
 
   // Sync canvas size with video element display size using ResizeObserver
   useEffect(() => {
