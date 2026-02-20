@@ -255,7 +255,6 @@ export class ObjectDetector {
 
   dispose(): void {
     if (this.session) {
-      this.session.release().catch(() => {});
       this.session = null;
       console.log('[ObjectDetector] Model disposed');
     }
