@@ -10,6 +10,7 @@
 import { useEffect, useRef } from 'react';
 import { CameraPreview } from './components/CameraPreview';
 import { CropRegionControl } from './components/CropRegionControl';
+import { DebugToggle } from './components/DebugToggle';
 import { DetectionOverlay } from './components/DetectionOverlay';
 import { ErrorScreen } from './components/ErrorScreen';
 import { RecordingControls } from './components/RecordingControls';
@@ -41,7 +42,7 @@ function App() {
     detectionEnabled,
   } = useAppStore();
 
-  const { detections, modelLoading } = useDetection(videoRef, detectionEnabled);
+  const { detections, modelLoading, stats: detectionStats } = useDetection(videoRef, detectionEnabled);
 
   // Request camera on mount
   useEffect(() => {
@@ -73,7 +74,7 @@ function App() {
       <CameraPreview ref={videoRef} stream={stream} />
 
       {/* Detection overlay */}
-      <DetectionOverlay detections={detections} videoRef={videoRef} />
+      <DetectionOverlay detections={detections} videoRef={videoRef} stats={detectionStats} />
 
       {/* Model loading indicator */}
       {modelLoading && (
@@ -93,6 +94,7 @@ function App() {
         <div className="absolute bottom-5 right-5 h-6 w-6 border-b border-r border-white/20" />
       </div>
 
+      <DebugToggle />
       <ZoomControl onZoomChange={setZoom} />
       <CropRegionControl />
       <RecordingControls isRecording={isRecording} onToggle={handleToggle} />
