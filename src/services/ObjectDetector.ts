@@ -63,11 +63,15 @@ export class ObjectDetector {
     ort.env.wasm.numThreads = 1;
     ort.env.wasm.proxy = false;
     ort.env.wasm.wasmPaths = '/ort/';
+
+    const hasWebGPU = typeof navigator !== 'undefined' && 'gpu' in navigator;
+    const provider = hasWebGPU ? 'webgpu' : 'wasm';
+
     this.session = await ort.InferenceSession.create(MODEL_URL, {
-      executionProviders: ['wasm'],
+      executionProviders: [provider],
     });
     const loadTime = Math.round(performance.now() - startTime);
-    console.log(`[ObjectDetector] Model loaded in ${loadTime}ms`);
+    console.log(`[ObjectDetector] Model loaded in ${loadTime}ms via ${provider}`);
   }
 
   async detect(

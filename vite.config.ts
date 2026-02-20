@@ -18,6 +18,10 @@ export default defineConfig({
           src: 'node_modules/onnxruntime-web/dist/ort-wasm.wasm',
           dest: 'ort',
         },
+        {
+          src: 'node_modules/onnxruntime-web/dist/ort-wasm-simd.jsep.wasm',
+          dest: 'ort',
+        },
       ],
     }),
   ],
