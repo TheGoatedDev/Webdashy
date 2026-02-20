@@ -60,6 +60,8 @@ export class ObjectDetector {
 
   async load(): Promise<void> {
     const startTime = performance.now();
+    ort.env.wasm.numThreads = 1;
+    ort.env.wasm.proxy = false;
     this.session = await ort.InferenceSession.create(MODEL_URL, {
       executionProviders: ['wasm'],
     });

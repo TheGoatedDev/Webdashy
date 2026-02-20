@@ -4,6 +4,26 @@ import type { Detection } from '../services/ObjectDetector';
 import type { DetectionStats } from '../hooks/useDetection';
 import { useAppStore } from '../store/appStore';
 
+function roundRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): void {
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
 interface DetectionOverlayProps {
   detections: Detection[];
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -159,7 +179,7 @@ export function DetectionOverlay({ detections, videoRef, stats }: DetectionOverl
       // Draw background pill
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
       ctx.beginPath();
-      ctx.roundRect(canvasX, labelY - pillHeight, pillWidth, pillHeight, 3);
+      roundRectPath(ctx, canvasX, labelY - pillHeight, pillWidth, pillHeight, 3);
       ctx.fill();
 
       // Draw text

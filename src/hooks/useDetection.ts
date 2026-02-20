@@ -13,10 +13,11 @@ export interface DetectionStats {
 export function useDetection(
   videoRef: RefObject<HTMLVideoElement | null>,
   enabled: boolean,
-): { detections: Detection[]; modelLoading: boolean; stats: DetectionStats } {
+): { detections: Detection[]; modelLoading: boolean; modelError: string | null; stats: DetectionStats } {
   const detectorRef = useRef<ObjectDetector | null>(null);
   const [detections, setDetections] = useState<Detection[]>([]);
   const [modelLoading, setModelLoading] = useState<boolean>(false);
+  const [modelError, setModelError] = useState<string | null>(null);
   const [stats, setStats] = useState<DetectionStats>({ fps: 0, inferenceMs: 0, detectionCount: 0 });
   const busyRef = useRef<boolean>(false);
   const rafRef = useRef<number>(0);
@@ -36,6 +37,7 @@ export function useDetection(
     // Load model if not already loaded
     if (!detector.isLoaded()) {
       setModelLoading(true);
+      setModelError(null);
       detector
         .load()
         .then(() => {
@@ -44,6 +46,9 @@ export function useDetection(
         .catch((error) => {
           console.error('[useDetection] Failed to load model:', error);
           setModelLoading(false);
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          setModelError(message);
+          useAppStore.getState().addToast('Detection unavailable — model failed to load', 'error');
         });
     }
   }, [enabled]);
@@ -106,5 +111,5 @@ export function useDetection(
     };
   }, [enabled]);
 
-  return { detections, modelLoading, stats };
+  return { detections, modelLoading, modelError, stats };
 }

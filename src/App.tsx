@@ -42,7 +42,7 @@ function App() {
     detectionEnabled,
   } = useAppStore();
 
-  const { detections, modelLoading, stats: detectionStats } = useDetection(videoRef, detectionEnabled);
+  const { detections, modelLoading, modelError, stats: detectionStats } = useDetection(videoRef, detectionEnabled);
 
   // Request camera on mount
   useEffect(() => {
@@ -80,6 +80,13 @@ function App() {
       {modelLoading && (
         <div className="fixed top-5 left-5 z-[5] font-display text-[10px] uppercase tracking-wider text-hud/50 transition-opacity duration-500">
           Loading detection model...
+        </div>
+      )}
+
+      {/* Model error indicator */}
+      {modelError && !modelLoading && (
+        <div className="fixed top-5 left-5 z-[5] font-display text-[10px] uppercase tracking-wider text-red-400/70 transition-opacity duration-500">
+          Detection unavailable
         </div>
       )}
 
