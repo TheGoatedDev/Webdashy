@@ -1,0 +1,2 @@
+[start]
+cmd = "exec caddy run --config /app/Caddyfile --adapter caddyfile 2>&1"
