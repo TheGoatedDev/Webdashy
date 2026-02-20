@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 Phase: 1 of 5 (Core Recording Engine)
 Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-17 - Completed quick task 5: Migrate object detection from MediaPipe to YOLOv8n via ONNX Runtime Web
+Last activity: 2026-02-17 - Completed quick task 6: Switch to YOLOv8n ONNX with configurable vertical crop region
 
 Progress: [██░░░░░░░░] 67%
 
@@ -55,6 +55,9 @@ Recent decisions affecting current work:
 - Session state persisted after every chunk for crash recovery (01-02)
 - ONNX detection uses webgl/wasm providers (not webgpu) to avoid COOP/COEP header requirements (quick-5)
 - YOLOv8n letterboxes video to 640x640 with gray (114,114,114) padding; bbox output mapped back to pixel coords (quick-5)
+- Crop region stored as cropTop/cropBottom percentages (0-100); postprocess adds cropOffsetY to Y before returning full-frame coords (quick-6)
+- rAF loop + busyRef prevents inference stacking; store accessed via getState() in loop to avoid re-render cascade (quick-6)
+- 10% minimum gap enforced between cropTop and cropBottom sliders in CropRegionControl (quick-6)
 
 ### Pending Todos
 
@@ -73,9 +76,10 @@ None yet.
 | 3 | Make video stream continue playing regardless of recording state | 2026-02-16 | 9451b3a | [3-make-video-stream-continue-playing-regar](./quick/3-make-video-stream-continue-playing-regar/) |
 | 4 | Implement basic computer vision model for car and person detection | 2026-02-16 | b343f0a | [4-implement-basic-computer-vision-model-fo](./quick/4-implement-basic-computer-vision-model-fo/) |
 | 5 | Migrate object detection from MediaPipe to YOLOv8n via ONNX Runtime Web | 2026-02-17 | 6f1416c | [5-migrate-object-detection-from-mediapipe-](./quick/5-migrate-object-detection-from-mediapipe-/) |
+| 6 | Switch to YOLOv8n ONNX with configurable vertical crop region | 2026-02-17 | a678f86 | [6-switch-to-yolov8n-onnx-with-configurable](./quick/6-switch-to-yolov8n-onnx-with-configurable/) |
 
 ## Session Continuity
 
-Last session: 2026-02-17T15:14:53Z
-Stopped at: Completed quick task 5 (Migrate object detection from MediaPipe to YOLOv8n via ONNX Runtime Web)
+Last session: 2026-02-17T17:25:43Z
+Stopped at: Completed quick task 6 (Switch to YOLOv8n ONNX with configurable vertical crop region)
 Resume file: None

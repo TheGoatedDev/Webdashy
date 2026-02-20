@@ -29,56 +29,73 @@ export function DetectionOverlay({ detections, videoRef, stats }: DetectionOverl
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw crop region darkened areas (outside crop bounds)
-    const topBarHeight = (cropTop / 100) * canvas.height;
-    const bottomBarStart = (cropBottom / 100) * canvas.height;
-    const bottomBarHeight = canvas.height - bottomBarStart;
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    if (topBarHeight > 0) {
-      ctx.fillRect(0, 0, canvas.width, topBarHeight);
-    }
-    if (bottomBarHeight > 0) {
-      ctx.fillRect(0, bottomBarStart, canvas.width, bottomBarHeight);
-    }
-
-    // Debug: draw transparent red box for the detection zone
-    if (debugOverlay) {
-      const zoneY = topBarHeight;
-      const zoneHeight = bottomBarStart - topBarHeight;
-
-      ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
-      ctx.fillRect(0, zoneY, canvas.width, zoneHeight);
-
-      ctx.strokeStyle = 'rgba(255, 0, 0, 0.6)';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([8, 4]);
-      ctx.strokeRect(1, zoneY + 1, canvas.width - 2, zoneHeight - 2);
-      ctx.setLineDash([]);
-
-      // Label the detection zone
-      ctx.font = "bold 11px 'Chakra Petch', monospace";
-      ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
-      ctx.fillText('DETECTION ZONE', 8, zoneY + 16);
-    }
-
     // Get video and canvas dimensions
-    const videoAspect = video.videoWidth / video.videoHeight;
+    const videoW = video.videoWidth;
+    const videoH = video.videoHeight;
+    const videoAspect = videoW / videoH;
     const canvasAspect = canvas.width / canvas.height;
 
     // Calculate object-fit: cover transformation
-    let scale: number;
+    let coverScale: number;
     let offsetX = 0;
     let offsetY = 0;
 
     if (videoAspect > canvasAspect) {
       // Video is wider than canvas - crop sides
-      scale = canvas.height / video.videoHeight;
-      offsetX = (canvas.width - video.videoWidth * scale) / 2;
+      coverScale = canvas.height / videoH;
+      offsetX = (canvas.width - videoW * coverScale) / 2;
     } else {
       // Video is taller than canvas - crop top/bottom
-      scale = canvas.width / video.videoWidth;
-      offsetY = (canvas.height - video.videoHeight * scale) / 2;
+      coverScale = canvas.width / videoW;
+      offsetY = (canvas.height - videoH * coverScale) / 2;
+    }
+
+    // Draw crop region darkened areas (outside crop bounds) using cover-space coords
+    const topBarY = offsetY;
+    const topBarH = (cropTop / 100) * videoH * coverScale;
+    const bottomBarY = offsetY + (cropBottom / 100) * videoH * coverScale;
+    const bottomBarH = canvas.height - bottomBarY;
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    if (topBarH > 0) {
+      ctx.fillRect(0, topBarY, canvas.width, topBarH);
+    }
+    if (bottomBarH > 0) {
+      ctx.fillRect(0, bottomBarY, canvas.width, bottomBarH);
+    }
+
+    // Compute effective detection region (mirrors preprocess math)
+    const cropHeight = videoH * (cropBottom - cropTop) / 100;
+    let cropXStart: number;
+    let cropWidth: number;
+    if (videoW > cropHeight) {
+      cropWidth = cropHeight;
+      cropXStart = (videoW - cropWidth) / 2;
+    } else {
+      cropWidth = videoW;
+      cropXStart = 0;
+    }
+
+    // Debug: draw transparent red box for the actual detection zone
+    if (debugOverlay) {
+      const zoneX = cropXStart * coverScale + offsetX;
+      const zoneY = (videoH * cropTop / 100) * coverScale + offsetY;
+      const zoneW = cropWidth * coverScale;
+      const zoneH = cropHeight * coverScale;
+
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
+      ctx.fillRect(zoneX, zoneY, zoneW, zoneH);
+
+      ctx.strokeStyle = 'rgba(255, 0, 0, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 4]);
+      ctx.strokeRect(zoneX + 1, zoneY + 1, zoneW - 2, zoneH - 2);
+      ctx.setLineDash([]);
+
+      // Label the detection zone
+      ctx.font = "bold 11px 'Chakra Petch', monospace";
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+      ctx.fillText('DETECTION ZONE', zoneX + 8, zoneY + 16);
     }
 
     // Draw each detection
@@ -86,10 +103,10 @@ export function DetectionOverlay({ detections, videoRef, stats }: DetectionOverl
       const [x, y, width, height] = detection.bbox;
 
       // Transform bbox coordinates from video space to canvas space
-      const canvasX = x * scale + offsetX;
-      const canvasY = y * scale + offsetY;
-      const canvasWidth = width * scale;
-      const canvasHeight = height * scale;
+      const canvasX = x * coverScale + offsetX;
+      const canvasY = y * coverScale + offsetY;
+      const canvasWidth = width * coverScale;
+      const canvasHeight = height * coverScale;
 
       // Choose color based on class
       const isPerson = detection.class === 'person';
@@ -160,7 +177,8 @@ export function DetectionOverlay({ detections, videoRef, stats }: DetectionOverl
         `INFERENCE: ${stats.inferenceMs}ms`,
         `OBJECTS: ${stats.detectionCount}`,
         `CROP: ${cropTop}%-${cropBottom}%`,
-        `RES: ${video.videoWidth}x${video.videoHeight}`,
+        `RES: ${videoW}x${videoH}`,
+        `MODEL: ${Math.round(cropWidth / videoW * 100)}% W`,
       ];
 
       const lineHeight = 16;

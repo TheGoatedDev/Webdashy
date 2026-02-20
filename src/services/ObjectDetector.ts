@@ -32,6 +32,7 @@ interface LetterboxInfo {
   scale: number;
   padX: number;
   padY: number;
+  cropOffsetX: number;
   cropOffsetY: number;
 }
 
@@ -93,9 +94,19 @@ export class ObjectDetector {
 
     const sy = Math.round(vh * cropTop / 100);
     const sh = Math.round(vh * (cropBottom - cropTop) / 100);
-    const sx = 0;
-    const sw = vw;
 
+    // Center-crop horizontally when source is wider than tall
+    let sx: number;
+    let sw: number;
+    if (vw > sh) {
+      sw = sh;
+      sx = Math.round((vw - sw) / 2);
+    } else {
+      sw = vw;
+      sx = 0;
+    }
+
+    const cropOffsetX = sx;
     const cropOffsetY = sy;
 
     // Calculate letterbox scale using cropped dimensions
@@ -128,7 +139,7 @@ export class ObjectDetector {
     }
 
     const tensor = new ort.Tensor('float32', float32, [1, 3, 640, 640]);
-    return { tensor, letterbox: { scale, padX, padY, cropOffsetY } };
+    return { tensor, letterbox: { scale, padX, padY, cropOffsetX, cropOffsetY } };
   }
 
   private postprocess(
@@ -137,7 +148,7 @@ export class ObjectDetector {
     videoWidth: number,
     videoHeight: number,
   ): Detection[] {
-    const { scale, padX, padY, cropOffsetY } = letterbox;
+    const { scale, padX, padY, cropOffsetX, cropOffsetY } = letterbox;
     const data = output.data as Float32Array;
     const dims = output.dims;
     // YOLOv8 output shape: [1, 84, num_detections] — 84 = 4 bbox + 80 classes
@@ -169,7 +180,7 @@ export class ObjectDetector {
       if (!this.config.targetClasses.includes(className)) continue;
 
       // Map from model space to full-frame video pixel space
-      const x = (cx - w / 2 - padX) / scale;
+      const x = (cx - w / 2 - padX) / scale + cropOffsetX;
       const y = (cy - h / 2 - padY) / scale + cropOffsetY;
       const bw = w / scale;
       const bh = h / scale;
