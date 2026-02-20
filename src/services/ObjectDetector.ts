@@ -12,7 +12,7 @@ export interface DetectionConfig {
   maxDetections: number;
 }
 
-const MODEL_URL = '/models/yolov8n.onnx';
+const MODEL_URL = '/data/v8n.bin';
 
 const COCO_LABELS: string[] = [
   'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat',
@@ -64,14 +64,24 @@ export class ObjectDetector {
     ort.env.wasm.proxy = false;
     ort.env.wasm.wasmPaths = '/ort/';
 
-    const hasWebGPU = typeof navigator !== 'undefined' && 'gpu' in navigator;
-    const provider = hasWebGPU ? 'webgpu' : 'wasm';
+    const providers: string[] =
+      typeof navigator !== 'undefined' && 'gpu' in navigator
+        ? ['webgpu', 'wasm']
+        : ['wasm'];
 
-    this.session = await ort.InferenceSession.create(MODEL_URL, {
-      executionProviders: [provider],
-    });
-    const loadTime = Math.round(performance.now() - startTime);
-    console.log(`[ObjectDetector] Model loaded in ${loadTime}ms via ${provider}`);
+    for (const provider of providers) {
+      try {
+        this.session = await ort.InferenceSession.create(MODEL_URL, {
+          executionProviders: [provider],
+        });
+        const loadTime = Math.round(performance.now() - startTime);
+        console.log(`[ObjectDetector] Model loaded in ${loadTime}ms via ${provider}`);
+        return;
+      } catch (err) {
+        console.warn(`[ObjectDetector] ${provider} failed, trying next...`, err);
+      }
+    }
+    throw new Error('All execution providers failed');
   }
 
   async detect(
