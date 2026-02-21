@@ -102,7 +102,6 @@ function App() {
         stats={detectionStats}
         flashBboxes={flashBboxes}
         vehicleDebugInfo={vehicleDebugInfo}
-        frameRef={frameRef}
       />
 
       {/* Gear / Settings button */}

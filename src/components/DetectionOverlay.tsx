@@ -31,7 +31,6 @@ interface DetectionOverlayProps {
   stats: DetectionStats;
   flashBboxes?: Array<[number, number, number, number]>;
   vehicleDebugInfo?: VehicleDebugInfo[];
-  frameRef?: RefObject<ImageBitmap | null>;
 }
 
 function bboxIou(
@@ -49,7 +48,7 @@ function bboxIou(
   return union > 0 ? intersection / union : 0;
 }
 
-export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, vehicleDebugInfo, frameRef }: DetectionOverlayProps) {
+export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, vehicleDebugInfo }: DetectionOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { cropTop, cropBottom, debugOverlay, plateSettings } = useAppStore();
   const { fullWidthDetection } = plateSettings;
@@ -88,18 +87,6 @@ export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, veh
       // Video is taller than canvas - crop top/bottom
       coverScale = canvas.width / videoW;
       offsetY = (canvas.height - videoH * coverScale) / 2;
-    }
-
-    // Draw analyzed frame as background (replaces live video — boxes align perfectly).
-    // Read from the ref at draw time so we always get the live, non-closed bitmap.
-    const analyzedFrame = frameRef?.current ?? null;
-    if (analyzedFrame) {
-      ctx.drawImage(
-        analyzedFrame,
-        0, 0, analyzedFrame.width, analyzedFrame.height,
-        offsetX, offsetY,
-        analyzedFrame.width * coverScale, analyzedFrame.height * coverScale,
-      );
     }
 
     // Draw crop region darkened areas (outside crop bounds) using cover-space coords
@@ -266,7 +253,7 @@ export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, veh
 
     // Reset alpha
     ctx.globalAlpha = 1;
-  }, [detections, videoRef, cropTop, cropBottom, debugOverlay, plateSettings, stats, flashBboxes, vehicleDebugInfo, frameRef]);
+  }, [detections, videoRef, cropTop, cropBottom, debugOverlay, plateSettings, stats, flashBboxes, vehicleDebugInfo]);
 
   // Sync canvas size with video element display size using ResizeObserver
   useEffect(() => {
