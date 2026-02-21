@@ -34,15 +34,20 @@ export function usePlateCapture(
   const [scanAttempt, setScanAttempt] = useState<ScanAttempt | null>(null);
   const scanAttemptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const vehicleDebugInfoRef = useRef<VehicleDebugInfo[]>([]);
+  // Abort flag: set to true on disable/unmount; checked by in-flight async work.
+  // Lives in a ref so it survives across detections changes without triggering rerenders.
+  const abortRef = useRef(false);
 
-  // Initialize tracker and reader when enabled
+  // Initialize tracker and reader when enabled; cancel in-flight work when disabled
   useEffect(() => {
     if (!enabled) return;
 
+    abortRef.current = false;
     trackerRef.current = new VehicleTracker();
     readerRef.current = new PlateReader();
 
     return () => {
+      abortRef.current = true;
       void readerRef.current?.terminate();
       readerRef.current = null;
       trackerRef.current = null;
@@ -93,8 +98,6 @@ export function usePlateCapture(
     const detectionScore = detection.score;
     const bbox = detection.bbox;
 
-    let cancelled = false;
-
     void (async () => {
       // Zero-copy crop — avoids canvas→JPEG→decode round-trip for OCR
       const vehicleBitmap = await createImageBitmap(frame, bx, by, bw, bh).catch(() => null);
@@ -116,7 +119,7 @@ export function usePlateCapture(
           );
         });
 
-        if (cancelled) return;
+        if (abortRef.current) return;
 
         // Show popup immediately — before OCR, regardless of result
         if (scanAttemptTimerRef.current) clearTimeout(scanAttemptTimerRef.current);
@@ -129,7 +132,7 @@ export function usePlateCapture(
           minTextLength: currentSettings.minTextLength,
         });
 
-        if (cancelled) return;
+        if (abortRef.current) return;
 
         if (!result) {
           console.log('[PlateCapture] no plate found');
@@ -155,7 +158,7 @@ export function usePlateCapture(
         await storage.addPlateCapture(capture);
         await storage.pruneOldPlateCaptures(useAppStore.getState().plateSettings.maxPlateCaptures);
 
-        if (cancelled) return;
+        if (abortRef.current) return;
 
         const { addPlateCaptureMetadata, addToast } = useAppStore.getState();
         addPlateCaptureMetadata({
@@ -183,8 +186,6 @@ export function usePlateCapture(
         vehicleBitmap.close();
       }
     })();
-
-    return () => { cancelled = true; };
   }, [detections, enabled, videoRef]);
 
   return { flashBboxes, vehicleDebugInfo: vehicleDebugInfoRef.current, scanAttempt };
