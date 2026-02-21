@@ -9,21 +9,31 @@ import { getClipStorage } from '../services/ClipStorage';
 import { useAppStore } from '../store/appStore';
 import type { PlateCapture } from '../types/storage';
 
+export interface ScanAttempt {
+  imageBlob: Blob;
+  timestamp: number;
+  vehicleClass: string;
+}
+
 export interface UsePlateCaptureResult {
   flashBboxes: Array<[number, number, number, number]>;
   vehicleDebugInfo: VehicleDebugInfo[];
+  scanAttempt: ScanAttempt | null;
 }
 
 export function usePlateCapture(
   videoRef: RefObject<HTMLVideoElement | null>,
   detections: Detection[],
   enabled: boolean,
+  analyzedFrame: RefObject<ImageBitmap | null>,
 ): UsePlateCaptureResult {
   const trackerRef = useRef<VehicleTracker | null>(null);
   const readerRef = useRef<PlateReader | null>(null);
   const lastGlobalAttemptRef = useRef<number>(0);
   const [flashBboxes, setFlashBboxes] = useState<Array<[number, number, number, number]>>([]);
-  const [vehicleDebugInfo, setVehicleDebugInfo] = useState<VehicleDebugInfo[]>([]);
+  const [scanAttempt, setScanAttempt] = useState<ScanAttempt | null>(null);
+  const scanAttemptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const vehicleDebugInfoRef = useRef<VehicleDebugInfo[]>([]);
 
   // Initialize tracker and reader when enabled
   useEffect(() => {
@@ -36,6 +46,7 @@ export function usePlateCapture(
       void readerRef.current?.terminate();
       readerRef.current = null;
       trackerRef.current = null;
+      if (scanAttemptTimerRef.current) clearTimeout(scanAttemptTimerRef.current);
     };
   }, [enabled]);
 
@@ -51,47 +62,83 @@ export function usePlateCapture(
     if (!video || video.videoWidth === 0) return;
 
     const nowMs = Date.now();
-    const eligible = tracker.update(detections, video.videoWidth, video.videoHeight, nowMs);
+    const plateSettings = useAppStore.getState().plateSettings;
+
+    const eligible = tracker.update(detections, video.videoWidth, video.videoHeight, nowMs, {
+      ...plateSettings,
+      iouThreshold: PLATE_CONFIG.IOU_THRESHOLD,
+      staleTimeoutMs: PLATE_CONFIG.STALE_TIMEOUT_MS,
+    });
 
     // Always snapshot debug info after tracker update
-    setVehicleDebugInfo(tracker.getDebugInfo(nowMs));
+    vehicleDebugInfoRef.current = tracker.getDebugInfo(nowMs, { cooldownMs: plateSettings.cooldownMs });
 
     if (eligible.length === 0) return;
 
-    // Global throttle: max one capture attempt per GLOBAL_THROTTLE_MS
-    if (nowMs - lastGlobalAttemptRef.current < PLATE_CONFIG.GLOBAL_THROTTLE_MS) return;
+    // Global throttle: max one capture attempt per globalThrottleMs
+    if (nowMs - lastGlobalAttemptRef.current < plateSettings.globalThrottleMs) return;
     lastGlobalAttemptRef.current = nowMs;
 
+    // Require an analyzed frame before burning the vehicle's capture cooldown
+    const frame = analyzedFrame.current;
+    if (!frame) return;
+
     const { tracked, detection } = eligible[0];
+    console.log('[PlateCapture] scanning vehicle', tracked.id, tracked.class, detection.bbox);
     tracker.markCaptureAttempt(tracked.id, nowMs);
 
-    // Crop the vehicle bbox from video using OffscreenCanvas
     const [bx, by, bw, bh] = detection.bbox;
-    const vehicleCanvas = new OffscreenCanvas(bw, bh);
-    const vehicleCtx = vehicleCanvas.getContext('2d');
-    if (!vehicleCtx) return;
-
-    vehicleCtx.drawImage(video, bx, by, bw, bh, 0, 0, bw, bh);
-
     const vehicleId = tracked.id;
     const vehicleClass = tracked.class;
     const detectionScore = detection.score;
     const bbox = detection.bbox;
 
-    vehicleCanvas
-      .convertToBlob({ type: 'image/jpeg', quality: 0.85 })
-      .then(async (vehicleImageBlob) => {
-        const result = await reader.read(vehicleImageBlob);
-        if (!result) return;
+    void (async () => {
+      // Zero-copy crop — avoids canvas→JPEG→decode round-trip for OCR
+      const vehicleBitmap = await createImageBitmap(frame, bx, by, bw, bh).catch(() => null);
+      if (!vehicleBitmap) return; // Frame was closed between check and crop
 
+      try {
+        // Create JPEG blob separately for popup/storage display
+        const vehicleImageBlob = await new Promise<Blob>((resolve, reject) => {
+          const vehicleCanvas = document.createElement('canvas');
+          vehicleCanvas.width = bw;
+          vehicleCanvas.height = bh;
+          const vehicleCtx = vehicleCanvas.getContext('2d');
+          if (!vehicleCtx) { reject(new Error('no 2d context')); return; }
+          vehicleCtx.drawImage(vehicleBitmap, 0, 0);
+          vehicleCanvas.toBlob(
+            (blob) => (blob ? resolve(blob) : reject(new Error('toBlob returned null'))),
+            'image/jpeg',
+            0.85,
+          );
+        });
+
+        // Show popup immediately — before OCR, regardless of result
+        if (scanAttemptTimerRef.current) clearTimeout(scanAttemptTimerRef.current);
+        setScanAttempt({ imageBlob: vehicleImageBlob, timestamp: nowMs, vehicleClass });
+        scanAttemptTimerRef.current = setTimeout(() => setScanAttempt(null), 3000);
+
+        const currentSettings = useAppStore.getState().plateSettings;
+        const result = await reader.read(vehicleBitmap, {
+          ocrConfidence: currentSettings.ocrConfidence,
+          minTextLength: currentSettings.minTextLength,
+        });
+        if (!result) {
+          console.log('[PlateCapture] no plate found');
+        } else {
+          console.log('[PlateCapture] plate read:', result.text, `(${result.confidence}% conf)`);
+        }
+
+        // Save all attempts — plateText/ocrConfidence/plateRegionBlob are optional
         const id = crypto.randomUUID();
         const capture: PlateCapture = {
           id,
           timestamp: nowMs,
           vehicleImageBlob,
-          plateRegionBlob: result.plateRegionBlob,
-          plateText: result.text,
-          ocrConfidence: result.confidence,
+          plateRegionBlob: result?.plateRegionBlob,
+          plateText: result?.text,
+          ocrConfidence: result?.confidence,
           vehicleClass,
           detectionScore,
           bbox,
@@ -99,32 +146,35 @@ export function usePlateCapture(
 
         const storage = getClipStorage();
         await storage.addPlateCapture(capture);
-        await storage.pruneOldPlateCaptures(PLATE_CONFIG.MAX_PLATE_CAPTURES);
+        await storage.pruneOldPlateCaptures(useAppStore.getState().plateSettings.maxPlateCaptures);
 
         const { addPlateCaptureMetadata, addToast } = useAppStore.getState();
         addPlateCaptureMetadata({
           id,
           timestamp: nowMs,
-          plateText: result.text,
-          ocrConfidence: result.confidence,
+          plateText: result?.text,
+          ocrConfidence: result?.confidence,
           vehicleClass,
           detectionScore,
           bbox,
         });
 
-        tracker.setPlateText(vehicleId, result.text);
-        addToast(`Plate: ${result.text}`, 'info');
-
-        // Flash the captured vehicle bbox for FLASH_DURATION_MS
-        setFlashBboxes((prev) => [...prev, bbox]);
-        setTimeout(() => {
-          setFlashBboxes((prev) => prev.filter((b) => b !== bbox));
-        }, PLATE_CONFIG.FLASH_DURATION_MS);
-      })
-      .catch((err: unknown) => {
+        // Flash and toast only on successful OCR
+        if (result) {
+          tracker.setPlateText(vehicleId, result.text);
+          addToast(`Plate: ${result.text}`, 'info');
+          setFlashBboxes((prev) => [...prev, bbox]);
+          setTimeout(() => {
+            setFlashBboxes((prev) => prev.filter((b) => b !== bbox));
+          }, PLATE_CONFIG.FLASH_DURATION_MS);
+        }
+      } catch (err: unknown) {
         console.error('[usePlateCapture]', err);
-      });
+      } finally {
+        vehicleBitmap.close();
+      }
+    })();
   }, [detections, enabled, videoRef]);
 
-  return { flashBboxes, vehicleDebugInfo };
+  return { flashBboxes, vehicleDebugInfo: vehicleDebugInfoRef.current, scanAttempt };
 }

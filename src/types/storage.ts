@@ -46,9 +46,9 @@ export interface PlateCapture {
   id: string;
   timestamp: number;
   vehicleImageBlob: Blob;
-  plateRegionBlob: Blob;
-  plateText: string;
-  ocrConfidence: number;
+  plateRegionBlob?: Blob;    // undefined when OCR found nothing
+  plateText?: string;         // undefined when OCR found nothing
+  ocrConfidence?: number;     // undefined when OCR found nothing
   vehicleClass: string;
   detectionScore: number;
   bbox: [number, number, number, number];
@@ -57,8 +57,8 @@ export interface PlateCapture {
 export interface PlateCaptureMetadata {
   id: string;
   timestamp: number;
-  plateText: string;
-  ocrConfidence: number;
+  plateText?: string;         // undefined when OCR found nothing
+  ocrConfidence?: number;     // undefined when OCR found nothing
   vehicleClass: string;
   detectionScore: number;
   bbox: [number, number, number, number];

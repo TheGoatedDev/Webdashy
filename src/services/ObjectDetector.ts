@@ -18,10 +18,18 @@ export interface DetectionConfig {
 const MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite2/float16/latest/efficientdet_lite2.tflite';
 
+export interface DetectionResult {
+  detections: Detection[];
+  frame: ImageBitmap;
+}
+
 export class ObjectDetector {
   private detector: MPObjectDetector | null = null;
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
+  private frameCanvas: HTMLCanvasElement;
+  private frameCtx: CanvasRenderingContext2D;
+  private lastFrame: ImageBitmap | null = null;
   private config: DetectionConfig = {
     targetClasses: [
       'car', 'person', 'truck', 'bus', 'bicycle', 'motorcycle',
@@ -38,6 +46,13 @@ export class ObjectDetector {
     const ctx = this.canvas.getContext('2d', { willReadFrequently: false });
     if (!ctx) throw new Error('Could not get 2D context for ObjectDetector canvas');
     this.ctx = ctx;
+
+    this.frameCanvas = document.createElement('canvas');
+    this.frameCanvas.width = 0;
+    this.frameCanvas.height = 0;
+    const frameCtx = this.frameCanvas.getContext('2d', { willReadFrequently: false });
+    if (!frameCtx) throw new Error('Could not get 2D context for ObjectDetector frameCanvas');
+    this.frameCtx = frameCtx;
   }
 
   async load(): Promise<void> {
@@ -66,21 +81,29 @@ export class ObjectDetector {
     video: HTMLVideoElement,
     cropTop: number,
     cropBottom: number,
-  ): Promise<Detection[]> {
+    fullWidthDetection = false,
+  ): Promise<DetectionResult | null> {
     if (!this.detector || !video || video.videoWidth === 0) {
-      return [];
+      return null;
     }
 
     const vw = video.videoWidth;
     const vh = video.videoHeight;
 
+    // Capture full frame snapshot before inference
+    if (this.frameCanvas.width !== vw || this.frameCanvas.height !== vh) {
+      this.frameCanvas.width = vw;
+      this.frameCanvas.height = vh;
+    }
+    this.frameCtx.drawImage(video, 0, 0, vw, vh);
+
     const sy = Math.round((vh * cropTop) / 100);
     const sh = Math.round((vh * (cropBottom - cropTop)) / 100);
 
-    // Center-crop horizontally when source is wider than tall
+    // Center-crop horizontally when source is wider than tall (skip when fullWidthDetection)
     let sx: number;
     let sw: number;
-    if (vw > sh) {
+    if (!fullWidthDetection && vw > sh) {
       sw = sh;
       sx = Math.round((vw - sw) / 2);
     } else {
@@ -99,7 +122,7 @@ export class ObjectDetector {
 
     const results = this.detector.detectForVideo(this.canvas, performance.now());
 
-    return (results.detections ?? [])
+    const detections = (results.detections ?? [])
       .map((det) => {
         const cat = det.categories?.[0];
         const box = det.boundingBox;
@@ -126,6 +149,22 @@ export class ObjectDetector {
         };
       })
       .filter((d): d is Detection => d !== null);
+
+    const frame = await createImageBitmap(this.frameCanvas);
+    this.lastFrame?.close();
+    this.lastFrame = frame;
+
+    return { detections, frame };
+  }
+
+  async updateConfig(config: Partial<DetectionConfig>): Promise<void> {
+    Object.assign(this.config, config);
+    if (this.detector) {
+      this.detector.setOptions({
+        scoreThreshold: this.config.minConfidence,
+        maxResults: this.config.maxDetections,
+      });
+    }
   }
 
   isLoaded(): boolean {
@@ -138,5 +177,7 @@ export class ObjectDetector {
       this.detector = null;
       console.log('[ObjectDetector] Model disposed');
     }
+    this.lastFrame?.close();
+    this.lastFrame = null;
   }
 }

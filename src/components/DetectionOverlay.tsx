@@ -3,7 +3,6 @@ import { useEffect, useRef } from 'react';
 import type { Detection } from '../services/ObjectDetector';
 import type { DetectionStats } from '../hooks/useDetection';
 import type { VehicleDebugInfo } from '../services/VehicleTracker';
-import { PLATE_CONFIG } from '../config/plateConfig';
 import { useAppStore } from '../store/appStore';
 
 function roundRectPath(
@@ -32,6 +31,7 @@ interface DetectionOverlayProps {
   stats: DetectionStats;
   flashBboxes?: Array<[number, number, number, number]>;
   vehicleDebugInfo?: VehicleDebugInfo[];
+  frameRef?: RefObject<ImageBitmap | null>;
 }
 
 function bboxIou(
@@ -49,9 +49,10 @@ function bboxIou(
   return union > 0 ? intersection / union : 0;
 }
 
-export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, vehicleDebugInfo }: DetectionOverlayProps) {
+export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, vehicleDebugInfo, frameRef }: DetectionOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { cropTop, cropBottom, debugOverlay } = useAppStore();
+  const { cropTop, cropBottom, debugOverlay, plateSettings } = useAppStore();
+  const { fullWidthDetection } = plateSettings;
 
   // Draw detections and crop region on canvas
   useEffect(() => {
@@ -89,6 +90,18 @@ export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, veh
       offsetY = (canvas.height - videoH * coverScale) / 2;
     }
 
+    // Draw analyzed frame as background (replaces live video — boxes align perfectly).
+    // Read from the ref at draw time so we always get the live, non-closed bitmap.
+    const analyzedFrame = frameRef?.current ?? null;
+    if (analyzedFrame) {
+      ctx.drawImage(
+        analyzedFrame,
+        0, 0, analyzedFrame.width, analyzedFrame.height,
+        offsetX, offsetY,
+        analyzedFrame.width * coverScale, analyzedFrame.height * coverScale,
+      );
+    }
+
     // Draw crop region darkened areas (outside crop bounds) using cover-space coords
     const topBarY = offsetY;
     const topBarH = (cropTop / 100) * videoH * coverScale;
@@ -107,7 +120,7 @@ export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, veh
     const cropHeight = videoH * (cropBottom - cropTop) / 100;
     let cropXStart: number;
     let cropWidth: number;
-    if (videoW > cropHeight) {
+    if (!fullWidthDetection && videoW > cropHeight) {
       cropWidth = cropHeight;
       cropXStart = (videoW - cropWidth) / 2;
     } else {
@@ -198,7 +211,7 @@ export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, veh
       if (dbgEntry) {
         const areaStr = `A:${Math.round(dbgEntry.areaFraction * 100)}%`;
         const widthStr = `W:${Math.round(dbgEntry.widthFraction * 100)}%`;
-        const frameStr = `F:${Math.min(dbgEntry.consecutiveLargeFrames, PLATE_CONFIG.MIN_STABLE_FRAMES)}/${PLATE_CONFIG.MIN_STABLE_FRAMES}`;
+        const frameStr = `F:${Math.min(dbgEntry.consecutiveLargeFrames, plateSettings.minStableFrames)}/${plateSettings.minStableFrames}`;
         const suffix = dbgEntry.plateText
           ? dbgEntry.plateText
           : dbgEntry.cooldownRemainingMs > 0
@@ -239,8 +252,8 @@ export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, veh
       // Draw debug line
       if (debugLine) {
         ctx.font = "10px 'Chakra Petch', monospace";
-        const areaOk = dbgEntry!.areaFraction >= PLATE_CONFIG.MIN_AREA_FRACTION;
-        const widthOk = dbgEntry!.widthFraction >= PLATE_CONFIG.MIN_WIDTH_FRACTION;
+        const areaOk = dbgEntry!.areaFraction >= plateSettings.minAreaFraction;
+        const widthOk = dbgEntry!.widthFraction >= plateSettings.minWidthFraction;
         const eligible = areaOk && widthOk;
         ctx.fillStyle = dbgEntry!.cooldownRemainingMs > 0
           ? 'rgba(255,100,100,0.85)'
@@ -253,7 +266,7 @@ export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, veh
 
     // Reset alpha
     ctx.globalAlpha = 1;
-  }, [detections, videoRef, cropTop, cropBottom, debugOverlay, stats, flashBboxes, vehicleDebugInfo]);
+  }, [detections, videoRef, cropTop, cropBottom, debugOverlay, plateSettings, stats, flashBboxes, vehicleDebugInfo, frameRef]);
 
   // Sync canvas size with video element display size using ResizeObserver
   useEffect(() => {
@@ -283,7 +296,7 @@ export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, veh
   const videoW = video?.videoWidth ?? 0;
   const videoH = video?.videoHeight ?? 0;
   const cropHeight = videoH * (cropBottom - cropTop) / 100;
-  const cropWidth = videoW > cropHeight ? cropHeight : videoW;
+  const cropWidth = (!fullWidthDetection && videoW > cropHeight) ? cropHeight : videoW;
   const modelPct = videoW > 0 ? Math.round(cropWidth / videoW * 100) : 0;
 
   return (

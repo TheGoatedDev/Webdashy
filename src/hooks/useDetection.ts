@@ -13,7 +13,7 @@ export interface DetectionStats {
 export function useDetection(
   videoRef: RefObject<HTMLVideoElement | null>,
   enabled: boolean,
-): { detections: Detection[]; modelLoading: boolean; modelError: string | null; stats: DetectionStats } {
+): { detections: Detection[]; modelLoading: boolean; modelError: string | null; stats: DetectionStats; frameRef: RefObject<ImageBitmap | null> } {
   const detectorRef = useRef<ObjectDetector | null>(null);
   const [detections, setDetections] = useState<Detection[]>([]);
   const [modelLoading, setModelLoading] = useState<boolean>(false);
@@ -22,6 +22,7 @@ export function useDetection(
   const busyRef = useRef<boolean>(false);
   const rafRef = useRef<number>(0);
   const frameTimesRef = useRef<number[]>([]);
+  const frameRef = useRef<ImageBitmap | null>(null);
 
   // Load model when enabled becomes true
   useEffect(() => {
@@ -69,11 +70,15 @@ export function useDetection(
       if (video.videoWidth === 0) return;
 
       busyRef.current = true;
-      const { cropTop, cropBottom } = useAppStore.getState();
+      const { cropTop, cropBottom, plateSettings } = useAppStore.getState();
       const inferenceStart = performance.now();
       detector
-        .detect(video, cropTop, cropBottom)
-        .then((results) => {
+        .detect(video, cropTop, cropBottom, plateSettings.fullWidthDetection)
+        .then((result) => {
+          if (!result) return;
+          const { detections: results, frame } = result;
+          frameRef.current?.close();
+          frameRef.current = frame;
           const inferenceMs = performance.now() - inferenceStart;
           const now = performance.now();
           const frameTimes = frameTimesRef.current;
@@ -98,8 +103,29 @@ export function useDetection(
     return () => {
       cancelAnimationFrame(rafRef.current);
       busyRef.current = false;
+      frameRef.current?.close();
+      frameRef.current = null;
     };
   }, [enabled, modelLoading, videoRef]);
+
+  // Sync detection settings to ObjectDetector when they change
+  useEffect(() => {
+    const { plateSettings } = useAppStore.getState();
+    detectorRef.current?.updateConfig({
+      minConfidence: plateSettings.detectionConfidence,
+      maxDetections: plateSettings.maxDetections,
+    });
+  }, []);
+
+  useEffect(() => {
+    return useAppStore.subscribe((state) => {
+      const { detectionConfidence, maxDetections } = state.plateSettings;
+      detectorRef.current?.updateConfig({
+        minConfidence: detectionConfidence,
+        maxDetections,
+      });
+    });
+  }, []);
 
   // Cleanup on unmount or when disabled
   useEffect(() => {
@@ -111,5 +137,5 @@ export function useDetection(
     };
   }, [enabled]);
 
-  return { detections, modelLoading, modelError, stats };
+  return { detections, modelLoading, modelError, stats, frameRef };
 }

@@ -29,6 +29,15 @@ export interface EligibleVehicle {
   detection: Detection;
 }
 
+export interface VehicleTrackerConfig {
+  iouThreshold: number;
+  staleTimeoutMs: number;
+  minAreaFraction: number;
+  minWidthFraction: number;
+  minStableFrames: number;
+  cooldownMs: number;
+}
+
 function iou(
   a: [number, number, number, number],
   b: [number, number, number, number],
@@ -53,6 +62,7 @@ export class VehicleTracker {
     videoWidth: number,
     videoHeight: number,
     nowMs: number,
+    config: VehicleTrackerConfig,
   ): EligibleVehicle[] {
     const frameArea = videoWidth * videoHeight;
 
@@ -65,7 +75,7 @@ export class VehicleTracker {
 
     for (const detection of vehicleDetections) {
       let bestId: string | null = null;
-      let bestIou: number = PLATE_CONFIG.IOU_THRESHOLD;
+      let bestIou: number = config.iouThreshold;
 
       for (const [id, tracked] of this.vehicles) {
         const score = iou(detection.bbox, tracked.bbox);
@@ -79,8 +89,8 @@ export class VehicleTracker {
       const areaFraction = bboxArea / frameArea;
       const widthFraction = detection.bbox[2] / videoWidth;
       const isLarge =
-        areaFraction >= PLATE_CONFIG.MIN_AREA_FRACTION &&
-        widthFraction >= PLATE_CONFIG.MIN_WIDTH_FRACTION;
+        areaFraction >= config.minAreaFraction &&
+        widthFraction >= config.minWidthFraction;
 
       if (bestId !== null) {
         const tracked = this.vehicles.get(bestId)!;
@@ -94,10 +104,8 @@ export class VehicleTracker {
           : 0;
         matched.add(bestId);
 
-        const cooldownOk =
-          nowMs - tracked.lastCaptureAttemptMs > PLATE_CONFIG.COOLDOWN_MS;
-        const stableOk =
-          tracked.consecutiveLargeFrames >= PLATE_CONFIG.MIN_STABLE_FRAMES;
+        const cooldownOk = nowMs - tracked.lastCaptureAttemptMs > config.cooldownMs;
+        const stableOk = tracked.consecutiveLargeFrames >= config.minStableFrames;
         if (isLarge && cooldownOk && stableOk) {
           eligible.push({ tracked, detection });
         }
@@ -122,7 +130,7 @@ export class VehicleTracker {
 
     // Prune stale vehicles
     for (const [id, tracked] of this.vehicles) {
-      if (nowMs - tracked.lastSeenMs > PLATE_CONFIG.STALE_TIMEOUT_MS) {
+      if (nowMs - tracked.lastSeenMs > config.staleTimeoutMs) {
         this.vehicles.delete(id);
       }
     }
@@ -145,12 +153,12 @@ export class VehicleTracker {
     }
   }
 
-  getDebugInfo(nowMs: number): VehicleDebugInfo[] {
+  getDebugInfo(nowMs: number, config: { cooldownMs: number }): VehicleDebugInfo[] {
     return Array.from(this.vehicles.values()).map((v) => {
       const elapsed = nowMs - v.lastCaptureAttemptMs;
       const cooldownRemainingMs =
         v.lastCaptureAttemptMs > 0
-          ? Math.max(0, PLATE_CONFIG.COOLDOWN_MS - elapsed)
+          ? Math.max(0, config.cooldownMs - elapsed)
           : 0;
       return {
         id: v.id,

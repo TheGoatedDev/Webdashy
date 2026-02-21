@@ -17,7 +17,7 @@ export class PlateReader {
     this.worker = await createWorker('eng');
     await this.worker.setParameters({
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-      tessedit_pageseg_mode: PSM.SINGLE_LINE,
+      tessedit_pageseg_mode: PSM.SPARSE_TEXT,
     });
   }
 
@@ -28,7 +28,10 @@ export class PlateReader {
     await this.initPromise;
   }
 
-  async read(vehicleImageBlob: Blob): Promise<PlateResult | null> {
+  async read(
+    vehicleBitmap: ImageBitmap,
+    config: { ocrConfidence: number; minTextLength: number },
+  ): Promise<PlateResult | null> {
     if (this.queue >= PLATE_CONFIG.MAX_QUEUE) {
       return null;
     }
@@ -38,51 +41,67 @@ export class PlateReader {
       if (!this.worker) return null;
 
       // Preprocess: take lower PLATE_REGION_FRACTION of the vehicle crop
-      const bitmap = await createImageBitmap(vehicleImageBlob);
       const regionHeight = Math.round(
-        bitmap.height * PLATE_CONFIG.PLATE_REGION_FRACTION,
+        vehicleBitmap.height * PLATE_CONFIG.PLATE_REGION_FRACTION,
       );
-      const regionY = bitmap.height - regionHeight;
+      const regionY = vehicleBitmap.height - regionHeight;
 
-      const canvas = new OffscreenCanvas(bitmap.width, regionHeight);
+      // Upscale small plate regions — Tesseract needs ~20-30px character height minimum
+      const MIN_HEIGHT = 80;
+      const scale = regionHeight < MIN_HEIGHT ? MIN_HEIGHT / regionHeight : 1;
+      const canvasW = Math.round(vehicleBitmap.width * scale);
+      const canvasH = Math.round(regionHeight * scale);
+
+      const canvas = new OffscreenCanvas(canvasW, canvasH);
       const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        bitmap.close();
-        return null;
-      }
+      if (!ctx) return null;
 
-      // Apply grayscale + high contrast to improve OCR accuracy
-      ctx.filter = 'grayscale(1) contrast(3) brightness(1.1)';
+      // Draw the plate region (upscaled if needed)
       ctx.drawImage(
-        bitmap,
+        vehicleBitmap,
         0,
         regionY,
-        bitmap.width,
+        vehicleBitmap.width,
         regionHeight,
         0,
         0,
-        bitmap.width,
-        regionHeight,
+        canvasW,
+        canvasH,
       );
-      bitmap.close();
 
-      const plateRegionBlob = await canvas.convertToBlob({
-        type: 'image/jpeg',
-        quality: 0.9,
-      });
+      // Manual grayscale + moderate contrast via pixel manipulation.
+      // ctx.filter on OffscreenCanvas can be silently unsupported — avoid it.
+      const imageData = ctx.getImageData(0, 0, canvasW, canvasH);
+      const data = imageData.data;
+      const CONTRAST = 1.8;
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        const contrasted = Math.min(255, Math.max(0, (gray - 128) * CONTRAST + 128));
+        data[i] = contrasted;
+        data[i + 1] = contrasted;
+        data[i + 2] = contrasted;
+        // alpha unchanged
+      }
+      ctx.putImageData(imageData, 0, 0);
 
-      const result = await this.worker.recognize(plateRegionBlob);
+      // Pass canvas directly to Tesseract — avoids a JPEG re-encode/decode round-trip.
+      // Tesseract.js internally calls convertToBlob() as PNG when given a canvas.
+      const result = await this.worker.recognize(canvas);
       const rawText = result.data.text.trim();
+      console.log('[PlateReader] raw OCR output:', JSON.stringify(rawText), 'confidence:', result.data.confidence);
+
       const text = rawText.replace(/[^A-Z0-9]/g, '');
       const confidence = result.data.confidence;
 
       if (
-        confidence < PLATE_CONFIG.MIN_OCR_CONFIDENCE ||
-        text.length < PLATE_CONFIG.MIN_TEXT_LENGTH
+        confidence < config.ocrConfidence ||
+        text.length < config.minTextLength
       ) {
         return null;
       }
 
+      // Generate PNG blob for storage only after OCR succeeds
+      const plateRegionBlob = await canvas.convertToBlob({ type: 'image/png' });
       return { text, confidence, plateRegionBlob };
     } finally {
       this.queue--;

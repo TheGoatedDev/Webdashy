@@ -51,16 +51,18 @@ function PlateEntry({ meta, onDelete }: PlateEntryProps) {
 
       {/* Plate info */}
       <div className="min-w-0 flex-1">
-        <div className="truncate font-mono text-xl tracking-widest text-warn">
-          {meta.plateText}
+        <div className={`truncate font-mono text-xl tracking-widest ${meta.plateText ? 'text-warn' : 'text-white/20'}`}>
+          {meta.plateText ?? '— no plate —'}
         </div>
         <div className="mt-0.5 flex items-center gap-3">
           <span className="font-display text-[10px] uppercase tracking-wider text-hud/70">
             {meta.vehicleClass}
           </span>
-          <span className="font-mono text-[10px] text-white/35">
-            {Math.round(meta.ocrConfidence)}% conf
-          </span>
+          {meta.ocrConfidence != null && (
+            <span className="font-mono text-[10px] text-white/35">
+              {Math.round(meta.ocrConfidence)}% conf
+            </span>
+          )}
           <span className="font-mono text-[10px] text-white/30">
             {formatTime(meta.timestamp)}
           </span>
@@ -91,12 +93,10 @@ function PlateEntry({ meta, onDelete }: PlateEntryProps) {
   );
 }
 
-interface PlateGalleryProps {
-  show: boolean;
-}
+export function PlateGallery() {
+  const { showPlateGallery, togglePlateGallery, plateCaptures, removePlateCaptureMetadata } = useAppStore();
 
-export function PlateGallery({ show }: PlateGalleryProps) {
-  const { plateCaptures, removePlateCaptureMetadata } = useAppStore();
+  if (!showPlateGallery) return null;
 
   const handleDelete = async (id: string) => {
     try {
@@ -109,32 +109,41 @@ export function PlateGallery({ show }: PlateGalleryProps) {
 
   return (
     <div
-      className={`fixed bottom-12 left-0 right-0 z-[99] border-t border-hud/20 bg-black/90 backdrop-blur-lg transition-transform duration-300 ${
-        show ? 'translate-y-0' : 'translate-y-full'
-      }`}
-      style={{ maxHeight: '60vh' }}
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) togglePlateGallery(); }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/5 px-5 py-3">
-        <span className="font-display text-[10px] font-medium uppercase tracking-widest text-white/40">
-          Plate Gallery
-        </span>
-        <span className="font-mono text-[10px] text-white/30">
-          {plateCaptures.length} captured
-        </span>
-      </div>
-
-      {/* Entries */}
-      <div className="overflow-y-auto" style={{ maxHeight: 'calc(60vh - 44px)' }}>
-        {plateCaptures.length === 0 ? (
-          <div className="px-5 py-8 text-center font-display text-xs text-white/25">
-            No plates captured yet
+      <div className="flex w-[520px] max-w-[95vw] max-h-[80vh] flex-col rounded-lg border border-white/10 bg-black/95 shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+          <div className="flex items-center gap-3">
+            <span className="font-display text-[13px] uppercase tracking-widest text-white/70">Plate Gallery</span>
+            <span className="font-mono text-[10px] text-white/30">{plateCaptures.length} captured</span>
           </div>
-        ) : (
-          plateCaptures.map((meta) => (
-            <PlateEntry key={meta.id} meta={meta} onDelete={handleDelete} />
-          ))
-        )}
+          <button
+            type="button"
+            onClick={togglePlateGallery}
+            aria-label="Close plate gallery"
+            className="flex h-6 w-6 items-center justify-center rounded text-white/40 transition-colors hover:text-white/70"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Entries */}
+        <div className="overflow-y-auto">
+          {plateCaptures.length === 0 ? (
+            <div className="px-5 py-8 text-center font-display text-xs text-white/25">
+              No plates captured yet
+            </div>
+          ) : (
+            plateCaptures.map((meta) => (
+              <PlateEntry key={meta.id} meta={meta} onDelete={handleDelete} />
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

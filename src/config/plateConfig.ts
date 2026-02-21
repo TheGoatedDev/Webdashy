@@ -1,30 +1,42 @@
-export const PLATE_CONFIG = {
-  // Eligibility thresholds
-  MIN_AREA_FRACTION: 0,       // bbox area must be ≥0% of frame area
-  MIN_WIDTH_FRACTION: 0.05,   // bbox width must be ≥5% of frame width
+export interface PlateSettings {
+  detectionConfidence: number; // default 0.5
+  maxDetections: number;       // default 20
+  ocrConfidence: number;       // default 60
+  minTextLength: number;       // default 4
+  minWidthFraction: number;    // default 0.05
+  minAreaFraction: number;     // default 0
+  minStableFrames: number;     // default 1
+  cooldownMs: number;          // default 10_000
+  globalThrottleMs: number;    // default 2_000
+  maxPlateCaptures: number;    // default 200
+  fullWidthDetection: boolean; // default false — use full width instead of 1:1 crop
+}
 
+export const DEFAULT_PLATE_SETTINGS: PlateSettings = {
+  detectionConfidence: 0.5,
+  maxDetections: 20,
+  ocrConfidence: 60,
+  minTextLength: 4,
+  minWidthFraction: 0.12,
+  minAreaFraction: 0,
+  minStableFrames: 1,
+  cooldownMs: 10_000,
+  globalThrottleMs: 2_000,
+  maxPlateCaptures: 200,
+  fullWidthDetection: false,
+};
+
+export const PLATE_CONFIG = {
   // Vehicle classes eligible for plate detection (bicycles excluded)
   VEHICLE_CLASSES: ['car', 'truck', 'bus', 'motorcycle'] as const,
 
-  // Rate limiting
-  COOLDOWN_MS: 10_000,         // 10s cooldown per vehicle after any capture attempt
-  MIN_STABLE_FRAMES: 3,        // consecutive large frames required before capture
-  GLOBAL_THROTTLE_MS: 2_000,  // max 1 capture attempt every 2s globally
-  MAX_QUEUE: 3,                // PlateReader drops requests if queue > this
+  // OCR pipeline
+  MAX_QUEUE: 3,               // PlateReader drops requests if queue > this
+  PLATE_REGION_FRACTION: 0.4, // fraction of vehicle crop height to take from bottom
 
   // IoU matching & stale tracking
   IOU_THRESHOLD: 0.4,
-  STALE_TIMEOUT_MS: 2_000,    // prune tracked vehicle after 2s without detection
-
-  // OCR quality filters
-  MIN_OCR_CONFIDENCE: 60,     // Tesseract confidence threshold (0-100)
-  MIN_TEXT_LENGTH: 4,          // minimum characters for a valid plate
-
-  // Preprocessing: fraction of vehicle crop height to take from bottom
-  PLATE_REGION_FRACTION: 0.6,
-
-  // Storage cap
-  MAX_PLATE_CAPTURES: 200,
+  STALE_TIMEOUT_MS: 2_000,   // prune tracked vehicle after 2s without detection
 
   // Visual flash duration after successful capture
   FLASH_DURATION_MS: 1_000,

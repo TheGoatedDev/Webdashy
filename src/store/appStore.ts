@@ -7,6 +7,8 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { DEFAULT_PLATE_SETTINGS } from '../config/plateConfig';
+import type { PlateSettings } from '../config/plateConfig';
 import type { PlateCaptureMetadata, StorageStats, StorageWarningLevel } from '../types/storage';
 
 interface Toast {
@@ -55,6 +57,10 @@ interface AppState {
   showPlateGallery: boolean;
   plateCaptureEnabled: boolean;
 
+  // Settings state
+  plateSettings: PlateSettings;
+  showSettings: boolean;
+
   // Toast messages
   toasts: Toast[];
 
@@ -82,6 +88,11 @@ interface AppState {
   addPlateCaptureMetadata: (meta: PlateCaptureMetadata) => void;
   removePlateCaptureMetadata: (id: string) => void;
   setPlateCaptures: (captures: PlateCaptureMetadata[]) => void;
+
+  // Settings actions
+  setPlateSettings: (partial: Partial<PlateSettings>) => void;
+  resetPlateSettings: () => void;
+  toggleSettings: () => void;
 }
 
 export const useAppStore = create<AppState>()(persist((set) => ({
@@ -109,6 +120,8 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   plateCaptures: [],
   showPlateGallery: false,
   plateCaptureEnabled: true,
+  plateSettings: DEFAULT_PLATE_SETTINGS,
+  showSettings: false,
   toasts: [],
 
   // Actions
@@ -168,11 +181,19 @@ export const useAppStore = create<AppState>()(persist((set) => ({
     set((state) => ({ plateCaptures: state.plateCaptures.filter((c) => c.id !== id) })),
 
   setPlateCaptures: (captures) => set({ plateCaptures: captures }),
+
+  setPlateSettings: (partial) =>
+    set((state) => ({ plateSettings: { ...state.plateSettings, ...partial } })),
+
+  resetPlateSettings: () => set({ plateSettings: DEFAULT_PLATE_SETTINGS }),
+
+  toggleSettings: () => set((state) => ({ showSettings: !state.showSettings })),
 }), {
   name: 'webdashy-settings',
   partialize: (state) => ({
     cropTop: state.cropTop,
     cropBottom: state.cropBottom,
     plateCaptureEnabled: state.plateCaptureEnabled,
+    plateSettings: state.plateSettings,
   }),
 }));
