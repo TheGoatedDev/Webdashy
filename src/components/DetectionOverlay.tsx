@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import { useEffect, useRef } from 'react';
-import type { Detection } from '../services/ObjectDetector';
+import type { CropRegion, Detection } from '../services/ObjectDetector';
 import type { DetectionStats } from '../hooks/useDetection';
 import type { VehicleDebugInfo } from '../services/VehicleTracker';
 import { useAppStore } from '../store/appStore';
@@ -31,6 +31,7 @@ interface DetectionOverlayProps {
   stats: DetectionStats;
   flashBboxes?: Array<[number, number, number, number]>;
   vehicleDebugInfo?: VehicleDebugInfo[];
+  cropRegionRef: RefObject<CropRegion | null>;
 }
 
 function bboxIou(
@@ -48,7 +49,7 @@ function bboxIou(
   return union > 0 ? intersection / union : 0;
 }
 
-export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, vehicleDebugInfo }: DetectionOverlayProps) {
+export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, vehicleDebugInfo, cropRegionRef }: DetectionOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { cropTop, cropBottom, debugOverlay, plateSettings } = useAppStore();
   const { fullWidthDetection } = plateSettings;
@@ -103,24 +104,13 @@ export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, veh
       ctx.fillRect(0, bottomBarY, canvas.width, bottomBarH);
     }
 
-    // Compute effective detection region (mirrors preprocess math)
-    const cropHeight = videoH * (cropBottom - cropTop) / 100;
-    let cropXStart: number;
-    let cropWidth: number;
-    if (!fullWidthDetection && videoW > cropHeight) {
-      cropWidth = cropHeight;
-      cropXStart = (videoW - cropWidth) / 2;
-    } else {
-      cropWidth = videoW;
-      cropXStart = 0;
-    }
-
     // Debug: draw transparent red box for the actual detection zone
     if (debugOverlay) {
-      const zoneX = cropXStart * coverScale + offsetX;
-      const zoneY = (videoH * cropTop / 100) * coverScale + offsetY;
-      const zoneW = cropWidth * coverScale;
-      const zoneH = cropHeight * coverScale;
+      const cropRegion = cropRegionRef.current;
+      const zoneX = (cropRegion?.sx ?? 0) * coverScale + offsetX;
+      const zoneY = (cropRegion?.sy ?? (videoH * cropTop / 100)) * coverScale + offsetY;
+      const zoneW = (cropRegion?.sw ?? videoW) * coverScale;
+      const zoneH = (cropRegion?.sh ?? (videoH * (cropBottom - cropTop) / 100)) * coverScale;
 
       ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
       ctx.fillRect(zoneX, zoneY, zoneW, zoneH);
@@ -137,15 +127,18 @@ export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, veh
       ctx.fillText('DETECTION ZONE', zoneX + 8, zoneY + 16);
     }
 
+    // Padding in canvas pixels
+    const pad = plateSettings.bboxPadding * coverScale;
+
     // Draw each detection
     for (const detection of detections) {
       const [x, y, width, height] = detection.bbox;
 
-      // Transform bbox coordinates from video space to canvas space
-      const canvasX = x * coverScale + offsetX;
-      const canvasY = y * coverScale + offsetY;
-      const canvasWidth = width * coverScale;
-      const canvasHeight = height * coverScale;
+      // Transform bbox coordinates from video space to canvas space, then expand by padding
+      const canvasX = x * coverScale + offsetX - pad;
+      const canvasY = y * coverScale + offsetY - pad;
+      const canvasWidth = width * coverScale + pad * 2;
+      const canvasHeight = height * coverScale + pad * 2;
 
       // Check if this bbox is currently flashing (plate just captured)
       const isFlashing = flashBboxes?.some(
@@ -253,7 +246,7 @@ export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, veh
 
     // Reset alpha
     ctx.globalAlpha = 1;
-  }, [detections, videoRef, cropTop, cropBottom, debugOverlay, plateSettings, stats, flashBboxes, vehicleDebugInfo]);
+  }, [detections, videoRef, cropTop, cropBottom, debugOverlay, plateSettings, stats, flashBboxes, vehicleDebugInfo, cropRegionRef]);
 
   // Sync canvas size with video element display size using ResizeObserver
   useEffect(() => {

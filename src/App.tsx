@@ -51,7 +51,7 @@ function App() {
     toggleSettings,
   } = useAppStore();
 
-  const { detections, modelLoading, modelError, stats: detectionStats, frameRef } = useDetection(videoRef, detectionEnabled);
+  const { detections, modelLoading, modelError, stats: detectionStats, frameRef, cropRegionRef } = useDetection(videoRef, detectionEnabled);
   const { flashBboxes, vehicleDebugInfo, scanAttempt } = usePlateCapture(videoRef, detections, detectionEnabled && plateCaptureEnabled, frameRef);
 
   // Request camera on mount
@@ -102,6 +102,7 @@ function App() {
         stats={detectionStats}
         flashBboxes={flashBboxes}
         vehicleDebugInfo={vehicleDebugInfo}
+        cropRegionRef={cropRegionRef}
       />
 
       {/* Gear / Settings button */}

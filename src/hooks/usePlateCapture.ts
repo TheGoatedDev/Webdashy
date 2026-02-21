@@ -93,6 +93,8 @@ export function usePlateCapture(
     const detectionScore = detection.score;
     const bbox = detection.bbox;
 
+    let cancelled = false;
+
     void (async () => {
       // Zero-copy crop — avoids canvas→JPEG→decode round-trip for OCR
       const vehicleBitmap = await createImageBitmap(frame, bx, by, bw, bh).catch(() => null);
@@ -114,6 +116,8 @@ export function usePlateCapture(
           );
         });
 
+        if (cancelled) return;
+
         // Show popup immediately — before OCR, regardless of result
         if (scanAttemptTimerRef.current) clearTimeout(scanAttemptTimerRef.current);
         setScanAttempt({ imageBlob: vehicleImageBlob, timestamp: nowMs, vehicleClass });
@@ -124,6 +128,9 @@ export function usePlateCapture(
           ocrConfidence: currentSettings.ocrConfidence,
           minTextLength: currentSettings.minTextLength,
         });
+
+        if (cancelled) return;
+
         if (!result) {
           console.log('[PlateCapture] no plate found');
         } else {
@@ -147,6 +154,8 @@ export function usePlateCapture(
         const storage = getClipStorage();
         await storage.addPlateCapture(capture);
         await storage.pruneOldPlateCaptures(useAppStore.getState().plateSettings.maxPlateCaptures);
+
+        if (cancelled) return;
 
         const { addPlateCaptureMetadata, addToast } = useAppStore.getState();
         addPlateCaptureMetadata({
@@ -174,6 +183,8 @@ export function usePlateCapture(
         vehicleBitmap.close();
       }
     })();
+
+    return () => { cancelled = true; };
   }, [detections, enabled, videoRef]);
 
   return { flashBboxes, vehicleDebugInfo: vehicleDebugInfoRef.current, scanAttempt };

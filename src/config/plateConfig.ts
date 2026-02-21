@@ -10,6 +10,7 @@ export interface PlateSettings {
   globalThrottleMs: number;    // default 2_000
   maxPlateCaptures: number;    // default 200
   fullWidthDetection: boolean; // default false — use full width instead of 1:1 crop
+  bboxPadding: number;         // default 0 — extra pixels added to each side of drawn bounding boxes
 }
 
 export const DEFAULT_PLATE_SETTINGS: PlateSettings = {
@@ -24,6 +25,7 @@ export const DEFAULT_PLATE_SETTINGS: PlateSettings = {
   globalThrottleMs: 2_000,
   maxPlateCaptures: 200,
   fullWidthDetection: false,
+  bboxPadding: 0,
 };
 
 export const PLATE_CONFIG = {

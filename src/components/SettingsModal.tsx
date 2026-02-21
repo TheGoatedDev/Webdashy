@@ -120,6 +120,15 @@ export function SettingsModal() {
               display={String(plateSettings.maxDetections)}
               onChange={(v) => update('maxDetections', v)}
             />
+            <SliderRow
+              label="Bbox padding"
+              value={plateSettings.bboxPadding}
+              min={0}
+              max={50}
+              step={1}
+              display={`${plateSettings.bboxPadding}px`}
+              onChange={(v) => update('bboxPadding', v)}
+            />
           </Section>
 
           <Section title="Plate Reading">

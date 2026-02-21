@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import type { Detection } from '../services/ObjectDetector';
+import type { CropRegion, Detection } from '../services/ObjectDetector';
 import { ObjectDetector } from '../services/ObjectDetector';
 import { useAppStore } from '../store/appStore';
 
@@ -13,7 +13,7 @@ export interface DetectionStats {
 export function useDetection(
   videoRef: RefObject<HTMLVideoElement | null>,
   enabled: boolean,
-): { detections: Detection[]; modelLoading: boolean; modelError: string | null; stats: DetectionStats; frameRef: RefObject<ImageBitmap | null> } {
+): { detections: Detection[]; modelLoading: boolean; modelError: string | null; stats: DetectionStats; frameRef: RefObject<ImageBitmap | null>; cropRegionRef: RefObject<CropRegion | null> } {
   const detectorRef = useRef<ObjectDetector | null>(null);
   const [detections, setDetections] = useState<Detection[]>([]);
   const [modelLoading, setModelLoading] = useState<boolean>(false);
@@ -23,10 +23,17 @@ export function useDetection(
   const rafRef = useRef<number>(0);
   const frameTimesRef = useRef<number[]>([]);
   const frameRef = useRef<ImageBitmap | null>(null);
+  const cropRegionRef = useRef<CropRegion | null>(null);
 
-  // Load model when enabled becomes true
+  // Load model when enabled becomes true; dispose when disabled
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      if (detectorRef.current) {
+        detectorRef.current.dispose();
+        detectorRef.current = null;
+      }
+      return;
+    }
 
     // Create detector instance once
     if (!detectorRef.current) {
@@ -70,15 +77,16 @@ export function useDetection(
       if (video.videoWidth === 0) return;
 
       busyRef.current = true;
-      const { cropTop, cropBottom, plateSettings } = useAppStore.getState();
+      const { cropTop, cropBottom, cropCenterX, plateSettings } = useAppStore.getState();
       const inferenceStart = performance.now();
       detector
-        .detect(video, cropTop, cropBottom, plateSettings.fullWidthDetection)
+        .detect(video, cropTop, cropBottom, plateSettings.fullWidthDetection, cropCenterX)
         .then((result) => {
           if (!result) return;
-          const { detections: results, frame } = result;
+          const { detections: results, frame, cropRegion } = result;
           frameRef.current?.close();
           frameRef.current = frame;
+          cropRegionRef.current = cropRegion;
           const inferenceMs = performance.now() - inferenceStart;
           const now = performance.now();
           const frameTimes = frameTimesRef.current;
@@ -118,8 +126,13 @@ export function useDetection(
   }, []);
 
   useEffect(() => {
+    let prevConfidence = useAppStore.getState().plateSettings.detectionConfidence;
+    let prevMaxDetections = useAppStore.getState().plateSettings.maxDetections;
     return useAppStore.subscribe((state) => {
       const { detectionConfidence, maxDetections } = state.plateSettings;
+      if (detectionConfidence === prevConfidence && maxDetections === prevMaxDetections) return;
+      prevConfidence = detectionConfidence;
+      prevMaxDetections = maxDetections;
       detectorRef.current?.updateConfig({
         minConfidence: detectionConfidence,
         maxDetections,
@@ -127,15 +140,5 @@ export function useDetection(
     });
   }, []);
 
-  // Cleanup on unmount or when disabled
-  useEffect(() => {
-    return () => {
-      if (!enabled && detectorRef.current) {
-        detectorRef.current.dispose();
-        detectorRef.current = null;
-      }
-    };
-  }, [enabled]);
-
-  return { detections, modelLoading, modelError, stats, frameRef };
+  return { detections, modelLoading, modelError, stats, frameRef, cropRegionRef };
 }

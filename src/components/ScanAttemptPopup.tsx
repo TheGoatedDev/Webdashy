@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ScanAttempt } from '../hooks/usePlateCapture';
 
 interface ScanAttemptPopupProps {
@@ -8,7 +8,6 @@ interface ScanAttemptPopupProps {
 export function ScanAttemptPopup({ scanAttempt }: ScanAttemptPopupProps) {
   const [visible, setVisible] = useState(false);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
-  const prevUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!scanAttempt) {
@@ -16,22 +15,12 @@ export function ScanAttemptPopup({ scanAttempt }: ScanAttemptPopupProps) {
       return;
     }
 
-    // Revoke previous URL to avoid leaks
-    if (prevUrlRef.current) {
-      URL.revokeObjectURL(prevUrlRef.current);
-    }
-
     const url = URL.createObjectURL(scanAttempt.imageBlob);
-    prevUrlRef.current = url;
     setObjectUrl(url);
     setVisible(true);
 
     return () => {
-      // Cleanup on unmount
-      if (prevUrlRef.current) {
-        URL.revokeObjectURL(prevUrlRef.current);
-        prevUrlRef.current = null;
-      }
+      URL.revokeObjectURL(url);
     };
   }, [scanAttempt]);
 
@@ -57,12 +46,12 @@ export function ScanAttemptPopup({ scanAttempt }: ScanAttemptPopupProps) {
         <span className="ml-auto text-hud/30">{time}</span>
       </div>
 
-      {/* Vehicle thumbnail */}
-      <div className="h-20 w-32 overflow-hidden rounded border border-white/20 bg-black/60 shadow-lg">
+      {/* Vehicle thumbnail — natural bbox aspect ratio, height-capped */}
+      <div className="overflow-hidden rounded border border-white/20 bg-black/60 shadow-lg">
         <img
           src={objectUrl}
           alt="Scan attempt"
-          className="h-full w-full object-cover"
+          className="max-h-20 w-auto max-w-48"
         />
       </div>
     </div>

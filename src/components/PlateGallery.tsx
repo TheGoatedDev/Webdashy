@@ -36,16 +36,16 @@ function PlateEntry({ meta, onDelete }: PlateEntryProps) {
 
   return (
     <div className="flex items-center gap-3 border-b border-white/5 px-5 py-3">
-      {/* Vehicle thumbnail */}
-      <div className="h-12 w-20 flex-shrink-0 overflow-hidden rounded bg-white/5">
+      {/* Vehicle thumbnail — natural bbox aspect ratio, height-capped */}
+      <div className="flex-shrink-0 overflow-hidden rounded bg-white/5">
         {vehicleUrl ? (
           <img
             src={vehicleUrl}
             alt="vehicle"
-            className="h-full w-full object-cover"
+            className="max-h-12 w-auto max-w-32"
           />
         ) : (
-          <div className="h-full w-full animate-pulse bg-white/10" />
+          <div className="h-12 w-20 animate-pulse bg-white/10" />
         )}
       </div>
 

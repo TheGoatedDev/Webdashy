@@ -18,9 +18,17 @@ export interface DetectionConfig {
 const MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite2/float16/latest/efficientdet_lite2.tflite';
 
+export interface CropRegion {
+  sx: number;
+  sy: number;
+  sw: number;
+  sh: number;
+}
+
 export interface DetectionResult {
   detections: Detection[];
   frame: ImageBitmap;
+  cropRegion: CropRegion;
 }
 
 export class ObjectDetector {
@@ -82,6 +90,7 @@ export class ObjectDetector {
     cropTop: number,
     cropBottom: number,
     fullWidthDetection = false,
+    cropCenterX = 50,
   ): Promise<DetectionResult | null> {
     if (!this.detector || !video || video.videoWidth === 0) {
       return null;
@@ -105,7 +114,7 @@ export class ObjectDetector {
     let sw: number;
     if (!fullWidthDetection && vw > sh) {
       sw = sh;
-      sx = Math.round((vw - sw) / 2);
+      sx = Math.round((cropCenterX / 100) * (vw - sw));
     } else {
       sw = vw;
       sx = 0;
@@ -154,7 +163,7 @@ export class ObjectDetector {
     this.lastFrame?.close();
     this.lastFrame = frame;
 
-    return { detections, frame };
+    return { detections, frame, cropRegion: { sx, sy, sw, sh } };
   }
 
   async updateConfig(config: Partial<DetectionConfig>): Promise<void> {

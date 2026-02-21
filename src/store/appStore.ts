@@ -44,6 +44,7 @@ interface AppState {
   // Crop region state
   cropTop: number;
   cropBottom: number;
+  cropCenterX: number;
 
   // Zoom state
   zoomLevel: number;
@@ -77,6 +78,7 @@ interface AppState {
   toggleDetection: () => void;
   toggleDebugOverlay: () => void;
   setCropRegion: (top: number, bottom: number) => void;
+  setCropCenterX: (x: number) => void;
   setZoomCapabilities: (min: number, max: number, step: number) => void;
   setZoomLevel: (level: number) => void;
   addToast: (message: string, type: 'info' | 'warning' | 'error') => void;
@@ -112,6 +114,7 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   debugOverlay: false,
   cropTop: 0,
   cropBottom: 100,
+  cropCenterX: 50,
   zoomLevel: 1,
   zoomMin: 1,
   zoomMax: 1,
@@ -149,6 +152,8 @@ export const useAppStore = create<AppState>()(persist((set) => ({
 
   setCropRegion: (top, bottom) => set({ cropTop: top, cropBottom: bottom }),
 
+  setCropCenterX: (x) => set({ cropCenterX: x }),
+
   setZoomCapabilities: (min, max, step) =>
     set({ zoomMin: min, zoomMax: max, zoomStep: step, zoomSupported: true, zoomLevel: min }),
 
@@ -175,7 +180,9 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   togglePlateCapture: () => set((state) => ({ plateCaptureEnabled: !state.plateCaptureEnabled })),
 
   addPlateCaptureMetadata: (meta) =>
-    set((state) => ({ plateCaptures: [meta, ...state.plateCaptures] })),
+    set((state) => ({
+      plateCaptures: [meta, ...state.plateCaptures].slice(0, state.plateSettings.maxPlateCaptures),
+    })),
 
   removePlateCaptureMetadata: (id) =>
     set((state) => ({ plateCaptures: state.plateCaptures.filter((c) => c.id !== id) })),
@@ -193,6 +200,7 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   partialize: (state) => ({
     cropTop: state.cropTop,
     cropBottom: state.cropBottom,
+    cropCenterX: state.cropCenterX,
     plateCaptureEnabled: state.plateCaptureEnabled,
     plateSettings: state.plateSettings,
   }),
