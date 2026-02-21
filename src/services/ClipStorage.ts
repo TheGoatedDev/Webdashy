@@ -2,10 +2,10 @@ import { type IDBPDatabase, openDB } from 'idb';
 import type {
   BufferChunk,
   DashcamDB,
-  PlateCapture,
-  PlateCaptureMetadata,
   SavedClip,
   SessionState,
+  VehicleCapture,
+  VehicleCaptureMetadata,
 } from '../types/storage';
 
 export class ClipStorage {
@@ -31,7 +31,7 @@ export class ClipStorage {
           db.createObjectStore('session', { keyPath: 'id' });
         }
         if (oldVersion < 2) {
-          // Plate captures store
+          // Vehicle captures store
           const platesStore = db.createObjectStore('plates', { keyPath: 'id' });
           platesStore.createIndex('by-timestamp', 'timestamp');
         }
@@ -168,8 +168,8 @@ export class ClipStorage {
     await db.delete('session', 'current');
   }
 
-  // Plate capture operations
-  async addPlateCapture(capture: PlateCapture): Promise<void> {
+  // Vehicle capture operations
+  async addVehicleCapture(capture: VehicleCapture): Promise<void> {
     await this.ensureInit();
     await this.retryWrite(async () => {
       const db = await this.getDB();
@@ -177,36 +177,34 @@ export class ClipStorage {
     });
   }
 
-  async getPlateCapture(id: string): Promise<PlateCapture | undefined> {
+  async getVehicleCapture(id: string): Promise<VehicleCapture | undefined> {
     const db = await this.getDB();
     return await db.get('plates', id);
   }
 
-  async deletePlateCapture(id: string): Promise<void> {
+  async deleteVehicleCapture(id: string): Promise<void> {
     const db = await this.getDB();
     await db.delete('plates', id);
   }
 
-  async getAllPlateCaptureMetadata(): Promise<PlateCaptureMetadata[]> {
+  async getAllVehicleCaptureMetadata(): Promise<VehicleCaptureMetadata[]> {
     const db = await this.getDB();
     const all = await db.getAll('plates');
-    return all.map(({ id, timestamp, plateText, ocrConfidence, vehicleClass, detectionScore, bbox }) => ({
+    return all.map(({ id, timestamp, vehicleClass, detectionScore, bbox }) => ({
       id,
       timestamp,
-      plateText,
-      ocrConfidence,
       vehicleClass,
       detectionScore,
       bbox,
     }));
   }
 
-  async getPlateCaptureCount(): Promise<number> {
+  async getVehicleCaptureCount(): Promise<number> {
     const db = await this.getDB();
     return await db.count('plates');
   }
 
-  async pruneOldPlateCaptures(maxCount: number): Promise<void> {
+  async pruneOldVehicleCaptures(maxCount: number): Promise<void> {
     const db = await this.getDB();
     const count = await db.count('plates');
     if (count <= maxCount) return;

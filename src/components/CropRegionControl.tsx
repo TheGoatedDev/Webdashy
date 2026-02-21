@@ -12,8 +12,16 @@ import { useAppStore } from '../store/appStore';
 const MIN_GAP = 10; // Minimum gap between cropTop and cropBottom (%)
 
 export function CropRegionControl() {
-  const { detectionEnabled, cropTop, cropBottom, setCropRegion, cropCenterX, setCropCenterX, plateSettings } = useAppStore();
-  const { fullWidthDetection } = plateSettings;
+  const {
+    detectionEnabled,
+    cropTop,
+    cropBottom,
+    setCropRegion,
+    cropCenterX,
+    setCropCenterX,
+    vehicleSettings,
+  } = useAppStore();
+  const { fullWidthDetection } = vehicleSettings;
 
   if (!detectionEnabled) return null;
 
@@ -61,9 +69,7 @@ export function CropRegionControl() {
         className="h-24 w-1 cursor-pointer appearance-none rounded-full bg-white/10 accent-hud [writing-mode:vertical-lr] [direction:rtl]"
       />
 
-      <span className="font-mono text-[10px] tracking-wider text-white/30">
-        CROP
-      </span>
+      <span className="font-mono text-[10px] tracking-wider text-white/30">CROP</span>
 
       {!fullWidthDetection && (
         <>
@@ -77,9 +83,7 @@ export function CropRegionControl() {
             aria-label="Detection zone horizontal pan"
             className="mt-2 h-1 w-24 cursor-pointer appearance-none rounded-full bg-white/10 accent-hud"
           />
-          <span className="font-mono text-[10px] tracking-wider text-white/30">
-            PAN
-          </span>
+          <span className="font-mono text-[10px] tracking-wider text-white/30">PAN</span>
         </>
       )}
     </div>

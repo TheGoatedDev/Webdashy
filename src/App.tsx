@@ -12,20 +12,20 @@ import { CameraPreview } from './components/CameraPreview';
 import { CropRegionControl } from './components/CropRegionControl';
 import { DetectionOverlay } from './components/DetectionOverlay';
 import { ErrorScreen } from './components/ErrorScreen';
-import { PlateGallery } from './components/PlateGallery';
-import { ScanAttemptPopup } from './components/ScanAttemptPopup';
 import { RecordingControls } from './components/RecordingControls';
+import { ScanAttemptPopup } from './components/ScanAttemptPopup';
 import { SettingsModal } from './components/SettingsModal';
 import { StatusStrip } from './components/StatusStrip';
 import { StoragePanel } from './components/StoragePanel';
 import { Toast } from './components/Toast';
+import { VehicleGallery } from './components/VehicleGallery';
 import { ZoomControl } from './components/ZoomControl';
 import { useBattery } from './hooks/useBattery';
 import { useCamera } from './hooks/useCamera';
 import { useDetection } from './hooks/useDetection';
-import { usePlateCapture } from './hooks/usePlateCapture';
 import { useRecorder } from './hooks/useRecorder';
 import { useStorage } from './hooks/useStorage';
+import { useVehicleCapture } from './hooks/useVehicleCapture';
 import { getClipStorage } from './services/ClipStorage';
 import { useAppStore } from './store/appStore';
 
@@ -44,32 +44,44 @@ function App() {
     showStoragePanel,
     toggleStoragePanel,
     detectionEnabled,
-    showPlateGallery,
-    togglePlateGallery,
-    plateCaptureEnabled,
-    setPlateCaptures,
+    showVehicleGallery,
+    toggleVehicleGallery,
+    vehicleCaptureEnabled,
+    setVehicleCaptures,
     toggleSettings,
   } = useAppStore();
 
-  const { detections, modelLoading, modelError, stats: detectionStats, frameRef, cropRegionRef } = useDetection(videoRef, detectionEnabled);
-  const { flashBboxes, vehicleDebugInfo, scanAttempt } = usePlateCapture(videoRef, detections, detectionEnabled && plateCaptureEnabled, frameRef);
+  const {
+    detections,
+    modelLoading,
+    modelError,
+    stats: detectionStats,
+    frameRef,
+    cropRegionRef,
+  } = useDetection(videoRef, detectionEnabled);
+  const { flashBboxes, vehicleDebugInfo, capturedVehicle } = useVehicleCapture(
+    videoRef,
+    detections,
+    detectionEnabled && vehicleCaptureEnabled,
+    frameRef,
+  );
 
   // Request camera on mount
   useEffect(() => {
     requestCamera();
   }, [requestCamera]);
 
-  // Load plate capture metadata from IndexedDB on mount
+  // Load vehicle capture metadata from IndexedDB on mount
   useEffect(() => {
     getClipStorage()
-      .getAllPlateCaptureMetadata()
+      .getAllVehicleCaptureMetadata()
       .then((captures) => {
-        setPlateCaptures(captures.sort((a, b) => b.timestamp - a.timestamp));
+        setVehicleCaptures(captures.sort((a, b) => b.timestamp - a.timestamp));
       })
       .catch((err: unknown) => {
-        console.error('[App] Failed to load plate captures:', err);
+        console.error('[App] Failed to load vehicle captures:', err);
       });
-  }, [setPlateCaptures]);
+  }, [setVehicleCaptures]);
 
   // Handle record/stop toggle
   const handleToggle = async () => {
@@ -113,7 +125,16 @@ function App() {
         className="fixed top-4 left-4 z-[100] flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/40 transition-all duration-200 hover:border-white/40 hover:text-white/60"
         title="Settings"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-4 w-4"
+        >
           <circle cx="12" cy="12" r="3" />
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
@@ -146,20 +167,20 @@ function App() {
 
       <SettingsModal />
 
-      {/* Plate gallery toggle button */}
+      {/* Vehicle gallery toggle button */}
       {detectionEnabled && (
         <button
           type="button"
-          onClick={togglePlateGallery}
-          aria-label="Toggle plate gallery"
+          onClick={toggleVehicleGallery}
+          aria-label="Toggle vehicle gallery"
           className={`fixed top-4 right-4 z-[100] flex h-8 w-8 items-center justify-center rounded-full border transition-all duration-200 ${
-            showPlateGallery
-              ? 'border-warn/60 bg-warn/20 text-warn shadow-[0_0_8px_rgba(255,214,10,0.3)]'
+            showVehicleGallery
+              ? 'border-hud/60 bg-hud/20 text-hud shadow-[0_0_8px_rgba(0,212,170,0.3)]'
               : 'border-white/20 bg-black/40 text-white/40 hover:border-white/40 hover:text-white/60'
           }`}
-          title="Plate gallery"
+          title="Vehicle gallery"
         >
-          {/* License plate icon */}
+          {/* Car icon */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -169,9 +190,11 @@ function App() {
             strokeLinecap="round"
             strokeLinejoin="round"
             className="h-4 w-4"
+            aria-hidden="true"
           >
-            <rect x="2" y="7" width="20" height="10" rx="2" />
-            <path d="M7 11h2M11 11h2M15 11h2" />
+            <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v9a2 2 0 0 1-2 2h-3" />
+            <circle cx="7.5" cy="17.5" r="2.5" />
+            <circle cx="17.5" cy="17.5" r="2.5" />
           </svg>
         </button>
       )}
@@ -186,8 +209,8 @@ function App() {
         onToggleStats={toggleStoragePanel}
       />
       <StoragePanel show={showStoragePanel} stats={stats} />
-      <PlateGallery />
-      <ScanAttemptPopup scanAttempt={scanAttempt} />
+      <VehicleGallery />
+      <ScanAttemptPopup capturedVehicle={capturedVehicle} />
       <Toast />
     </div>
   );

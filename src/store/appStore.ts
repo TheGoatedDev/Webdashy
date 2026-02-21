@@ -7,9 +7,9 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { DEFAULT_PLATE_SETTINGS } from '../config/plateConfig';
-import type { PlateSettings } from '../config/plateConfig';
-import type { PlateCaptureMetadata, StorageStats, StorageWarningLevel } from '../types/storage';
+import type { VehicleSettings } from '../config/vehicleConfig';
+import { DEFAULT_VEHICLE_SETTINGS } from '../config/vehicleConfig';
+import type { StorageStats, StorageWarningLevel, VehicleCaptureMetadata } from '../types/storage';
 
 interface Toast {
   id: string;
@@ -53,13 +53,13 @@ interface AppState {
   zoomStep: number;
   zoomSupported: boolean;
 
-  // Plate capture state
-  plateCaptures: PlateCaptureMetadata[];
-  showPlateGallery: boolean;
-  plateCaptureEnabled: boolean;
+  // Vehicle capture state
+  vehicleCaptures: VehicleCaptureMetadata[];
+  showVehicleGallery: boolean;
+  vehicleCaptureEnabled: boolean;
 
   // Settings state
-  plateSettings: PlateSettings;
+  vehicleSettings: VehicleSettings;
   showSettings: boolean;
 
   // Toast messages
@@ -84,124 +84,134 @@ interface AppState {
   addToast: (message: string, type: 'info' | 'warning' | 'error') => void;
   removeToast: (id: string) => void;
 
-  // Plate capture actions
-  togglePlateGallery: () => void;
-  togglePlateCapture: () => void;
-  addPlateCaptureMetadata: (meta: PlateCaptureMetadata) => void;
-  removePlateCaptureMetadata: (id: string) => void;
-  setPlateCaptures: (captures: PlateCaptureMetadata[]) => void;
+  // Vehicle capture actions
+  toggleVehicleGallery: () => void;
+  toggleVehicleCapture: () => void;
+  addVehicleCaptureMetadata: (meta: VehicleCaptureMetadata) => void;
+  removeVehicleCaptureMetadata: (id: string) => void;
+  setVehicleCaptures: (captures: VehicleCaptureMetadata[]) => void;
 
   // Settings actions
-  setPlateSettings: (partial: Partial<PlateSettings>) => void;
-  resetPlateSettings: () => void;
+  setVehicleSettings: (partial: Partial<VehicleSettings>) => void;
+  resetVehicleSettings: () => void;
   toggleSettings: () => void;
 }
 
-export const useAppStore = create<AppState>()(persist((set) => ({
-  // Initial state
-  isRecording: false,
-  elapsedMs: 0,
-  recordingError: null,
-  cameraError: null,
-  cameraReady: false,
-  storageStats: null,
-  storageWarningLevel: 'ok',
-  showStoragePanel: false,
-  isPluggedIn: true,
-  batteryLevel: null,
-  showBatteryWarning: false,
-  detectionEnabled: true,
-  debugOverlay: false,
-  cropTop: 0,
-  cropBottom: 100,
-  cropCenterX: 50,
-  zoomLevel: 1,
-  zoomMin: 1,
-  zoomMax: 1,
-  zoomStep: 0.1,
-  zoomSupported: false,
-  plateCaptures: [],
-  showPlateGallery: false,
-  plateCaptureEnabled: true,
-  plateSettings: DEFAULT_PLATE_SETTINGS,
-  showSettings: false,
-  toasts: [],
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
+      // Initial state
+      isRecording: false,
+      elapsedMs: 0,
+      recordingError: null,
+      cameraError: null,
+      cameraReady: false,
+      storageStats: null,
+      storageWarningLevel: 'ok',
+      showStoragePanel: false,
+      isPluggedIn: true,
+      batteryLevel: null,
+      showBatteryWarning: false,
+      detectionEnabled: true,
+      debugOverlay: false,
+      cropTop: 0,
+      cropBottom: 100,
+      cropCenterX: 50,
+      zoomLevel: 1,
+      zoomMin: 1,
+      zoomMax: 1,
+      zoomStep: 0.1,
+      zoomSupported: false,
+      vehicleCaptures: [],
+      showVehicleGallery: false,
+      vehicleCaptureEnabled: true,
+      vehicleSettings: DEFAULT_VEHICLE_SETTINGS,
+      showSettings: false,
+      toasts: [],
 
-  // Actions
-  setRecording: (recording) => set({ isRecording: recording }),
+      // Actions
+      setRecording: (recording) => set({ isRecording: recording }),
 
-  setElapsedMs: (ms) => set({ elapsedMs: ms }),
+      setElapsedMs: (ms) => set({ elapsedMs: ms }),
 
-  setRecordingError: (error) => set({ recordingError: error }),
+      setRecordingError: (error) => set({ recordingError: error }),
 
-  setCameraError: (error) => set({ cameraError: error }),
+      setCameraError: (error) => set({ cameraError: error }),
 
-  setCameraReady: (ready) => set({ cameraReady: ready }),
+      setCameraReady: (ready) => set({ cameraReady: ready }),
 
-  setStorageStats: (stats) => set({ storageStats: stats }),
+      setStorageStats: (stats) => set({ storageStats: stats }),
 
-  setStorageWarningLevel: (level) => set({ storageWarningLevel: level }),
+      setStorageWarningLevel: (level) => set({ storageWarningLevel: level }),
 
-  toggleStoragePanel: () => set((state) => ({ showStoragePanel: !state.showStoragePanel })),
+      toggleStoragePanel: () => set((state) => ({ showStoragePanel: !state.showStoragePanel })),
 
-  setBatteryState: (pluggedIn, level) => set({ isPluggedIn: pluggedIn, batteryLevel: level }),
+      setBatteryState: (pluggedIn, level) => set({ isPluggedIn: pluggedIn, batteryLevel: level }),
 
-  toggleDetection: () => set((state) => ({ detectionEnabled: !state.detectionEnabled })),
+      toggleDetection: () => set((state) => ({ detectionEnabled: !state.detectionEnabled })),
 
-  toggleDebugOverlay: () => set((state) => ({ debugOverlay: !state.debugOverlay })),
+      toggleDebugOverlay: () => set((state) => ({ debugOverlay: !state.debugOverlay })),
 
-  setCropRegion: (top, bottom) => set({ cropTop: top, cropBottom: bottom }),
+      setCropRegion: (top, bottom) => set({ cropTop: top, cropBottom: bottom }),
 
-  setCropCenterX: (x) => set({ cropCenterX: x }),
+      setCropCenterX: (x) => set({ cropCenterX: x }),
 
-  setZoomCapabilities: (min, max, step) =>
-    set({ zoomMin: min, zoomMax: max, zoomStep: step, zoomSupported: true, zoomLevel: min }),
+      setZoomCapabilities: (min, max, step) =>
+        set({ zoomMin: min, zoomMax: max, zoomStep: step, zoomSupported: true, zoomLevel: min }),
 
-  setZoomLevel: (level) => set({ zoomLevel: level }),
+      setZoomLevel: (level) => set({ zoomLevel: level }),
 
-  addToast: (message, type) => {
-    const id = crypto.randomUUID();
-    set((state) => ({
-      toasts: [...state.toasts, { id, message, type }],
-    }));
+      addToast: (message, type) => {
+        const id = crypto.randomUUID();
+        set((state) => ({
+          toasts: [...state.toasts, { id, message, type }],
+        }));
 
-    // Auto-remove after 3 seconds
-    setTimeout(() => {
-      set((state) => ({
-        toasts: state.toasts.filter((t) => t.id !== id),
-      }));
-    }, 3000);
-  },
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+          set((state) => ({
+            toasts: state.toasts.filter((t) => t.id !== id),
+          }));
+        }, 3000);
+      },
 
-  removeToast: (id) => set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) })),
+      removeToast: (id) => set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) })),
 
-  togglePlateGallery: () => set((state) => ({ showPlateGallery: !state.showPlateGallery })),
+      toggleVehicleGallery: () =>
+        set((state) => ({ showVehicleGallery: !state.showVehicleGallery })),
 
-  togglePlateCapture: () => set((state) => ({ plateCaptureEnabled: !state.plateCaptureEnabled })),
+      toggleVehicleCapture: () =>
+        set((state) => ({ vehicleCaptureEnabled: !state.vehicleCaptureEnabled })),
 
-  addPlateCaptureMetadata: (meta) =>
-    set((state) => ({
-      plateCaptures: [meta, ...state.plateCaptures].slice(0, state.plateSettings.maxPlateCaptures),
-    })),
+      addVehicleCaptureMetadata: (meta) =>
+        set((state) => ({
+          vehicleCaptures: [meta, ...state.vehicleCaptures].slice(
+            0,
+            state.vehicleSettings.maxVehicleCaptures,
+          ),
+        })),
 
-  removePlateCaptureMetadata: (id) =>
-    set((state) => ({ plateCaptures: state.plateCaptures.filter((c) => c.id !== id) })),
+      removeVehicleCaptureMetadata: (id) =>
+        set((state) => ({ vehicleCaptures: state.vehicleCaptures.filter((c) => c.id !== id) })),
 
-  setPlateCaptures: (captures) => set({ plateCaptures: captures }),
+      setVehicleCaptures: (captures) => set({ vehicleCaptures: captures }),
 
-  setPlateSettings: (partial) =>
-    set((state) => ({ plateSettings: { ...state.plateSettings, ...partial } })),
+      setVehicleSettings: (partial) =>
+        set((state) => ({ vehicleSettings: { ...state.vehicleSettings, ...partial } })),
 
-  resetPlateSettings: () => set({ plateSettings: DEFAULT_PLATE_SETTINGS }),
+      resetVehicleSettings: () => set({ vehicleSettings: DEFAULT_VEHICLE_SETTINGS }),
 
-  toggleSettings: () => set((state) => ({ showSettings: !state.showSettings })),
-}), {
-  name: 'webdashy-settings',
-  partialize: (state) => ({
-    cropTop: state.cropTop,
-    cropBottom: state.cropBottom,
-    cropCenterX: state.cropCenterX,
-    plateCaptureEnabled: state.plateCaptureEnabled,
-    plateSettings: state.plateSettings,
-  }),
-}));
+      toggleSettings: () => set((state) => ({ showSettings: !state.showSettings })),
+    }),
+    {
+      name: 'webdashy-settings',
+      partialize: (state) => ({
+        cropTop: state.cropTop,
+        cropBottom: state.cropBottom,
+        cropCenterX: state.cropCenterX,
+        vehicleCaptureEnabled: state.vehicleCaptureEnabled,
+        vehicleSettings: state.vehicleSettings,
+      }),
+    },
+  ),
+);

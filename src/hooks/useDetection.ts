@@ -13,7 +13,14 @@ export interface DetectionStats {
 export function useDetection(
   videoRef: RefObject<HTMLVideoElement | null>,
   enabled: boolean,
-): { detections: Detection[]; modelLoading: boolean; modelError: string | null; stats: DetectionStats; frameRef: RefObject<ImageBitmap | null>; cropRegionRef: RefObject<CropRegion | null> } {
+): {
+  detections: Detection[];
+  modelLoading: boolean;
+  modelError: string | null;
+  stats: DetectionStats;
+  frameRef: RefObject<ImageBitmap | null>;
+  cropRegionRef: RefObject<CropRegion | null>;
+} {
   const detectorRef = useRef<ObjectDetector | null>(null);
   const [detections, setDetections] = useState<Detection[]>([]);
   const [modelLoading, setModelLoading] = useState<boolean>(false);
@@ -77,10 +84,10 @@ export function useDetection(
       if (video.videoWidth === 0) return;
 
       busyRef.current = true;
-      const { cropTop, cropBottom, cropCenterX, plateSettings } = useAppStore.getState();
+      const { cropTop, cropBottom, cropCenterX, vehicleSettings } = useAppStore.getState();
       const inferenceStart = performance.now();
       detector
-        .detect(video, cropTop, cropBottom, plateSettings.fullWidthDetection, cropCenterX)
+        .detect(video, cropTop, cropBottom, vehicleSettings.fullWidthDetection, cropCenterX)
         .then((result) => {
           if (!result) return;
           const { detections: results, frame, cropRegion } = result;
@@ -96,7 +103,11 @@ export function useDetection(
             frameTimes.shift();
           }
           setDetections(results);
-          setStats({ fps: frameTimes.length, inferenceMs: Math.round(inferenceMs), detectionCount: results.length });
+          setStats({
+            fps: frameTimes.length,
+            inferenceMs: Math.round(inferenceMs),
+            detectionCount: results.length,
+          });
         })
         .catch((err) => {
           console.error('[useDetection]', err);
@@ -118,18 +129,18 @@ export function useDetection(
 
   // Sync detection settings to ObjectDetector when they change
   useEffect(() => {
-    const { plateSettings } = useAppStore.getState();
+    const { vehicleSettings } = useAppStore.getState();
     detectorRef.current?.updateConfig({
-      minConfidence: plateSettings.detectionConfidence,
-      maxDetections: plateSettings.maxDetections,
+      minConfidence: vehicleSettings.detectionConfidence,
+      maxDetections: vehicleSettings.maxDetections,
     });
   }, []);
 
   useEffect(() => {
-    let prevConfidence = useAppStore.getState().plateSettings.detectionConfidence;
-    let prevMaxDetections = useAppStore.getState().plateSettings.maxDetections;
+    let prevConfidence = useAppStore.getState().vehicleSettings.detectionConfidence;
+    let prevMaxDetections = useAppStore.getState().vehicleSettings.maxDetections;
     return useAppStore.subscribe((state) => {
-      const { detectionConfidence, maxDetections } = state.plateSettings;
+      const { detectionConfidence, maxDetections } = state.vehicleSettings;
       if (detectionConfidence === prevConfidence && maxDetections === prevMaxDetections) return;
       prevConfidence = detectionConfidence;
       prevMaxDetections = maxDetections;

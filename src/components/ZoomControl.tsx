@@ -25,9 +25,7 @@ export function ZoomControl({ onZoomChange }: ZoomControlProps) {
 
   return (
     <div className="fixed left-5 top-1/2 z-[100] flex -translate-y-1/2 flex-col items-center gap-3">
-      <span className="font-mono text-[10px] tracking-wider text-hud/70">
-        {displayZoom}x
-      </span>
+      <span className="font-mono text-[10px] tracking-wider text-hud/70">{displayZoom}x</span>
 
       <input
         type="range"
@@ -40,9 +38,7 @@ export function ZoomControl({ onZoomChange }: ZoomControlProps) {
         className="zoom-slider h-32 w-1 cursor-pointer appearance-none rounded-full bg-white/10 accent-hud [writing-mode:vertical-lr] [direction:rtl]"
       />
 
-      <span className="font-mono text-[10px] tracking-wider text-white/30">
-        Z
-      </span>
+      <span className="font-mono text-[10px] tracking-wider text-white/30">Z</span>
     </div>
   );
 }

@@ -46,11 +46,7 @@ export function useCamera(): UseCameraReturn {
       if (videoTrack) {
         const capabilities = videoTrack.getCapabilities();
         if (capabilities.zoom) {
-          setZoomCapabilities(
-            capabilities.zoom.min,
-            capabilities.zoom.max,
-            capabilities.zoom.step,
-          );
+          setZoomCapabilities(capabilities.zoom.min, capabilities.zoom.max, capabilities.zoom.step);
         }
       }
     } catch (err) {

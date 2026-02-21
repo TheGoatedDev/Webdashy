@@ -1,32 +1,32 @@
 import { useEffect, useState } from 'react';
-import type { ScanAttempt } from '../hooks/usePlateCapture';
+import type { CapturedVehicle } from '../hooks/useVehicleCapture';
 
 interface ScanAttemptPopupProps {
-  scanAttempt: ScanAttempt | null;
+  capturedVehicle: CapturedVehicle | null;
 }
 
-export function ScanAttemptPopup({ scanAttempt }: ScanAttemptPopupProps) {
+export function ScanAttemptPopup({ capturedVehicle }: ScanAttemptPopupProps) {
   const [visible, setVisible] = useState(false);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!scanAttempt) {
+    if (!capturedVehicle) {
       setVisible(false);
       return;
     }
 
-    const url = URL.createObjectURL(scanAttempt.imageBlob);
+    const url = URL.createObjectURL(capturedVehicle.imageBlob);
     setObjectUrl(url);
     setVisible(true);
 
     return () => {
       URL.revokeObjectURL(url);
     };
-  }, [scanAttempt]);
+  }, [capturedVehicle]);
 
-  if (!scanAttempt || !objectUrl) return null;
+  if (!capturedVehicle || !objectUrl) return null;
 
-  const time = new Date(scanAttempt.timestamp).toLocaleTimeString([], {
+  const time = new Date(capturedVehicle.timestamp).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
@@ -40,19 +40,14 @@ export function ScanAttemptPopup({ scanAttempt }: ScanAttemptPopupProps) {
     >
       {/* Label row */}
       <div className="flex items-center gap-2 font-display text-[10px] uppercase tracking-wider text-hud/70">
-        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-warn" />
-        <span>Scanning</span>
-        <span className="text-hud/40">{scanAttempt.vehicleClass}</span>
+        <span>Captured</span>
+        <span className="text-hud/40">{capturedVehicle.vehicleClass}</span>
         <span className="ml-auto text-hud/30">{time}</span>
       </div>
 
       {/* Vehicle thumbnail — natural bbox aspect ratio, height-capped */}
       <div className="overflow-hidden rounded border border-white/20 bg-black/60 shadow-lg">
-        <img
-          src={objectUrl}
-          alt="Scan attempt"
-          className="max-h-20 w-auto max-w-48"
-        />
+        <img src={objectUrl} alt="Captured vehicle" className="max-h-20 w-auto max-w-48" />
       </div>
     </div>
   );

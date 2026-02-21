@@ -1,7 +1,4 @@
-import {
-  FilesetResolver,
-  ObjectDetector as MPObjectDetector,
-} from '@mediapipe/tasks-vision';
+import { FilesetResolver, ObjectDetector as MPObjectDetector } from '@mediapipe/tasks-vision';
 
 export interface Detection {
   class: string;
@@ -40,8 +37,22 @@ export class ObjectDetector {
   private lastFrame: ImageBitmap | null = null;
   private config: DetectionConfig = {
     targetClasses: [
-      'car', 'person', 'truck', 'bus', 'bicycle', 'motorcycle',
-      'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe',
+      'car',
+      'person',
+      'truck',
+      'bus',
+      'bicycle',
+      'motorcycle',
+      'bird',
+      'cat',
+      'dog',
+      'horse',
+      'sheep',
+      'cow',
+      'elephant',
+      'bear',
+      'zebra',
+      'giraffe',
     ],
     minConfidence: 0.5,
     maxDetections: 20,

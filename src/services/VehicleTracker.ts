@@ -1,4 +1,4 @@
-import { PLATE_CONFIG } from '../config/plateConfig';
+import { VEHICLE_CONFIG } from '../config/vehicleConfig';
 import type { Detection } from './ObjectDetector';
 
 interface TrackedVehicle {
@@ -9,7 +9,6 @@ interface TrackedVehicle {
   consecutiveLargeFrames: number;
   lastSeenMs: number;
   lastCaptureAttemptMs: number;
-  plateText: string | null;
   areaFraction: number;
   widthFraction: number;
 }
@@ -21,7 +20,6 @@ export interface VehicleDebugInfo {
   widthFraction: number;
   consecutiveLargeFrames: number;
   cooldownRemainingMs: number; // 0 = not on cooldown
-  plateText: string | null;
 }
 
 export interface EligibleVehicle {
@@ -38,10 +36,7 @@ export interface VehicleTrackerConfig {
   cooldownMs: number;
 }
 
-function iou(
-  a: [number, number, number, number],
-  b: [number, number, number, number],
-): number {
+function iou(a: [number, number, number, number], b: [number, number, number, number]): number {
   const ax2 = a[0] + a[2];
   const ay2 = a[1] + a[3];
   const bx2 = b[0] + b[2];
@@ -67,7 +62,7 @@ export class VehicleTracker {
     const frameArea = videoWidth * videoHeight;
 
     const vehicleDetections = detections.filter((d) =>
-      (PLATE_CONFIG.VEHICLE_CLASSES as readonly string[]).includes(d.class),
+      (VEHICLE_CONFIG.VEHICLE_CLASSES as readonly string[]).includes(d.class),
     );
 
     const matched = new Set<string>();
@@ -89,8 +84,7 @@ export class VehicleTracker {
       const areaFraction = bboxArea / frameArea;
       const widthFraction = detection.bbox[2] / videoWidth;
       const isLarge =
-        areaFraction >= config.minAreaFraction &&
-        widthFraction >= config.minWidthFraction;
+        areaFraction >= config.minAreaFraction && widthFraction >= config.minWidthFraction;
 
       if (bestId !== null) {
         const tracked = this.vehicles.get(bestId)!;
@@ -99,9 +93,7 @@ export class VehicleTracker {
         tracked.lastSeenMs = nowMs;
         tracked.areaFraction = areaFraction;
         tracked.widthFraction = widthFraction;
-        tracked.consecutiveLargeFrames = isLarge
-          ? tracked.consecutiveLargeFrames + 1
-          : 0;
+        tracked.consecutiveLargeFrames = isLarge ? tracked.consecutiveLargeFrames + 1 : 0;
         matched.add(bestId);
 
         const cooldownOk = nowMs - tracked.lastCaptureAttemptMs > config.cooldownMs;
@@ -119,7 +111,6 @@ export class VehicleTracker {
           consecutiveLargeFrames: isLarge ? 1 : 0,
           lastSeenMs: nowMs,
           lastCaptureAttemptMs: 0,
-          plateText: null,
           areaFraction,
           widthFraction,
         };
@@ -146,20 +137,11 @@ export class VehicleTracker {
     }
   }
 
-  setPlateText(vehicleId: string, text: string): void {
-    const tracked = this.vehicles.get(vehicleId);
-    if (tracked) {
-      tracked.plateText = text;
-    }
-  }
-
   getDebugInfo(nowMs: number, config: { cooldownMs: number }): VehicleDebugInfo[] {
     return Array.from(this.vehicles.values()).map((v) => {
       const elapsed = nowMs - v.lastCaptureAttemptMs;
       const cooldownRemainingMs =
-        v.lastCaptureAttemptMs > 0
-          ? Math.max(0, config.cooldownMs - elapsed)
-          : 0;
+        v.lastCaptureAttemptMs > 0 ? Math.max(0, config.cooldownMs - elapsed) : 0;
       return {
         id: v.id,
         bbox: v.bbox,
@@ -167,7 +149,6 @@ export class VehicleTracker {
         widthFraction: v.widthFraction,
         consecutiveLargeFrames: v.consecutiveLargeFrames,
         cooldownRemainingMs,
-        plateText: v.plateText,
       };
     });
   }

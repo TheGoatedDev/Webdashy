@@ -42,23 +42,18 @@ export const VIDEO_QUALITY_PRESETS: Record<VideoQuality, VideoQualityConfig> = {
   high: { width: 1920, height: 1080, bitrate: 5_000_000, label: '1080p' },
 };
 
-export interface PlateCapture {
+export interface VehicleCapture {
   id: string;
   timestamp: number;
   vehicleImageBlob: Blob;
-  plateRegionBlob?: Blob;    // undefined when OCR found nothing
-  plateText?: string;         // undefined when OCR found nothing
-  ocrConfidence?: number;     // undefined when OCR found nothing
   vehicleClass: string;
   detectionScore: number;
   bbox: [number, number, number, number];
 }
 
-export interface PlateCaptureMetadata {
+export interface VehicleCaptureMetadata {
   id: string;
   timestamp: number;
-  plateText?: string;         // undefined when OCR found nothing
-  ocrConfidence?: number;     // undefined when OCR found nothing
   vehicleClass: string;
   detectionScore: number;
   bbox: [number, number, number, number];
@@ -81,7 +76,7 @@ export interface DashcamDB extends DBSchema {
   };
   plates: {
     key: string;
-    value: PlateCapture;
+    value: VehicleCapture;
     indexes: { 'by-timestamp': number };
   };
 }
