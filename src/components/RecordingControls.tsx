@@ -15,7 +15,7 @@ export function RecordingControls({ isRecording, onToggle }: RecordingControlsPr
   return (
     <button
       type="button"
-      className={`fixed bottom-24 right-6 z-[101] flex h-[72px] w-[72px] items-center justify-center rounded-full border-2 backdrop-blur-sm transition-all duration-200 active:scale-95 ${
+      className={`fixed bottom-24 right-6 z-[101] flex h-[72px] w-[72px] items-center justify-center rounded-full border-2 transition-all duration-200 active:scale-95 ${
         isRecording
           ? 'animate-glow border-rec bg-black/30'
           : 'border-white/25 bg-black/20 hover:border-white/40'

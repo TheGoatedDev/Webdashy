@@ -19,9 +19,9 @@ export function DebugToggle() {
       type="button"
       onClick={toggleDebugOverlay}
       aria-label="Toggle detection debug overlay"
-      className={`fixed top-4 right-4 z-[100] flex h-8 w-8 items-center justify-center rounded-full border transition-all duration-200 ${
+      className={`fixed top-4 right-4 z-[100] flex h-8 w-8 items-center justify-center rounded-sm border transition-all duration-200 ${
         debugOverlay
-          ? 'border-red-500/60 bg-red-500/20 text-red-400 shadow-[0_0_8px_rgba(255,0,0,0.3)]'
+          ? 'border-rec/60 bg-rec/20 text-rec shadow-[0_0_8px_rgba(255,59,48,0.3)]'
           : 'border-white/20 bg-black/40 text-white/40 hover:border-white/40 hover:text-white/60'
       }`}
       title="Debug overlay"

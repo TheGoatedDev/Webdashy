@@ -112,10 +112,10 @@ export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, veh
       const zoneW = (cropRegion?.sw ?? videoW) * coverScale;
       const zoneH = (cropRegion?.sh ?? (videoH * (cropBottom - cropTop) / 100)) * coverScale;
 
-      ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
+      ctx.fillStyle = 'rgba(255, 59, 48, 0.15)';
       ctx.fillRect(zoneX, zoneY, zoneW, zoneH);
 
-      ctx.strokeStyle = 'rgba(255, 0, 0, 0.6)';
+      ctx.strokeStyle = 'rgba(255, 59, 48, 0.6)';
       ctx.lineWidth = 2;
       ctx.setLineDash([8, 4]);
       ctx.strokeRect(zoneX + 1, zoneY + 1, zoneW - 2, zoneH - 2);
@@ -123,7 +123,7 @@ export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, veh
 
       // Label the detection zone
       ctx.font = "bold 11px 'Chakra Petch', monospace";
-      ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+      ctx.fillStyle = 'rgba(255, 59, 48, 0.8)';
       ctx.fillText('DETECTION ZONE', zoneX + 8, zoneY + 16);
     }
 
@@ -236,7 +236,7 @@ export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, veh
         const widthOk = dbgEntry!.widthFraction >= plateSettings.minWidthFraction;
         const eligible = areaOk && widthOk;
         ctx.fillStyle = dbgEntry!.cooldownRemainingMs > 0
-          ? 'rgba(255,100,100,0.85)'
+          ? 'rgba(255, 59, 48, 0.85)'
           : eligible
             ? '#ffd60a'
             : 'rgba(255,255,255,0.5)';
@@ -286,7 +286,7 @@ export function DetectionOverlay({ detections, videoRef, stats, flashBboxes, veh
         className="absolute top-0 left-0 w-full h-full pointer-events-none z-[1]"
       />
       {debugOverlay && (
-        <div className="fixed top-14 right-4 z-[100] min-w-[160px] rounded border border-red-500/40 bg-black/70 px-2 py-1.5 font-mono text-[11px] text-red-400/90 pointer-events-none">
+        <div className="fixed top-14 right-4 z-[100] min-w-[160px] rounded border border-rec/40 bg-black/70 px-2 py-1.5 font-mono text-[11px] text-rec/90 pointer-events-none">
           <div>FPS: {stats.fps}</div>
           <div>INFERENCE: {stats.inferenceMs}ms</div>
           <div>OBJECTS: {stats.detectionCount}</div>

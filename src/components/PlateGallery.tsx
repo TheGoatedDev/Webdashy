@@ -74,7 +74,7 @@ function PlateEntry({ meta, onDelete }: PlateEntryProps) {
         type="button"
         onClick={() => onDelete(meta.id)}
         aria-label="Delete plate capture"
-        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-white/10 text-white/30 transition-colors hover:border-red-500/40 hover:text-red-400/80"
+        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-sm border border-white/10 text-white/30 transition-colors hover:border-rec/40 hover:text-rec/80"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -109,10 +109,10 @@ export function PlateGallery() {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70"
       onClick={(e) => { if (e.target === e.currentTarget) togglePlateGallery(); }}
     >
-      <div className="flex w-[520px] max-w-[95vw] max-h-[80vh] flex-col rounded-lg border border-white/10 bg-black/95 shadow-2xl">
+      <div className="flex w-[520px] max-w-[95vw] max-h-[80vh] flex-col rounded-sm border border-white/10 bg-black/95 shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
           <div className="flex items-center gap-3">

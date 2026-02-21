@@ -2,8 +2,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-display: 'Chakra Petch', sans-serif;
-  --font-mono: 'Share Tech Mono', monospace;
+  --font-display: 'Chakra Petch', 'Rajdhani', sans-serif;
+  --font-mono: 'Share Tech Mono', 'Courier New', monospace;
 
   --color-rec: #ff3b30;
   --color-hud: #00d4aa;

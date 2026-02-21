@@ -66,10 +66,10 @@ export function SettingsModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70"
       onClick={(e) => { if (e.target === e.currentTarget) toggleSettings(); }}
     >
-      <div className="flex w-[340px] max-h-[80vh] flex-col rounded-lg border border-white/10 bg-black/95 shadow-2xl">
+      <div className="flex w-[340px] max-h-[80vh] flex-col rounded-sm border border-white/10 bg-black/95 shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
           <span className="font-display text-[13px] uppercase tracking-widest text-white/70">Settings</span>
@@ -216,7 +216,7 @@ export function SettingsModal() {
                 type="button"
                 onClick={toggleDebugOverlay}
                 aria-label="Toggle debug overlay"
-                className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${debugOverlay ? 'bg-red-500/60' : 'bg-white/15'}`}
+                className={`relative h-5 w-9 rounded-full transition-colors duration-200 ${debugOverlay ? 'bg-rec/60' : 'bg-white/15'}`}
               >
                 <span
                   className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${debugOverlay ? 'translate-x-4' : 'translate-x-0.5'}`}

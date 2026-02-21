@@ -70,6 +70,16 @@ Metadata only → Zustand store → Components
 
 `ClipStorage` persists a `SessionState` (codec + quality + last chunk timestamp) to detect crashes. On mount, `useRecorder` checks for an interrupted session (gap > 2 min) and surfaces it to the user.
 
+## Brand Guidelines
+
+Brand guidelines are defined in `BRAND_GUIDELINES.md`. Reference them for color choices, typography, copy tone, and UI decisions. Key rules at a glance:
+
+- Colors: `--color-rec` `#FF3B30` · `--color-hud` `#00D4AA` · `--color-warn` `#FFD60A` — use HUD Teal sparingly, only for active states
+- Backgrounds: `#000000` canvas, `#111111` panels, `#1A1A1A` elevated surfaces
+- Shapes: sharp edges only — `rounded-sm` maximum, no `rounded-lg`+, no gradients
+- Voice: casual but competent · system voice for status, second person for guidance · errors sharpen (terse, no apologies)
+- Never: cloud language, AI hype, fear-based copy, corporate jargon
+
 ## Tooling
 
 - **Biome** for lint + format (100 char line width, single quotes, trailing commas)
