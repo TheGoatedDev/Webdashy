@@ -16,7 +16,7 @@ export interface DetectionConfig {
 }
 
 const MODEL_URL =
-  'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite2/float16/latest/efficientdet_lite2.tflite';
+  'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/latest/efficientdet_lite0.tflite';
 
 export interface CropRegion {
   sx: number;
